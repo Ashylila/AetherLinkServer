@@ -8,7 +8,6 @@ using System.Threading.Tasks;
 using AetherLinkServer.DalamudServices;
 using AetherLinkServer;
 using AetherLinkServer.Utility;
-using WebSocketSharp;
 public class ChatHandler : IDisposable
 {
 
@@ -23,7 +22,7 @@ public class ChatHandler : IDisposable
 
     private void OnChatMessageReceived(XivChatType type, int timestamp, ref SeString sender, ref SeString message, ref bool isHandled)
     {
-        if((int)type >= 2000) return;
+        if ((int)type >= 2000) return;
         var chatMessage = new ChatMessage
         {
             Type = type,

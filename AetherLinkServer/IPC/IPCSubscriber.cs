@@ -10,7 +10,7 @@ using FFXIVClientStructs.FFXIV.Client.UI.Misc;
 using System.Threading.Tasks;
 using System.Threading;
 
-#nullable disable
+#nullable disable warnings
 
 namespace AetherLinkServer.IPC;
 
@@ -78,7 +78,7 @@ internal static class AutoRetainer_IPCSubscriber
 
     internal static class GatherBuddyReborn_IPCSubscriber
     {
-         private static EzIPCDisposalToken[] _disposalTokens = EzIPC.Init(typeof(AutoRetainer_IPCSubscriber), "GatherBuddy", SafeWrapper.IPCException);
+         private static EzIPCDisposalToken[] _disposalTokens = EzIPC.Init(typeof(GatherBuddyReborn_IPCSubscriber), "GatherBuddy", SafeWrapper.IPCException);
     }
     
     internal class IPCSubscriber_Common

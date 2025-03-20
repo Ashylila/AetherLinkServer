@@ -12,7 +12,7 @@ namespace AetherLinkServer.Services;
 public class CommandHandler
 {
     private IPluginLog Logger => Svc.Log;
-    private readonly Dictionary <string, ICommand> _commands = new();
+    private readonly Dictionary<string, ICommand> _commands = new();
 
     public CommandHandler(Plugin plugin)
     {
@@ -25,7 +25,7 @@ public class CommandHandler
         var commandTypes = Assembly.GetExecutingAssembly().GetTypes().Where(t => typeof(ICommand).IsAssignableFrom(t) && !t.IsInterface && !t.IsAbstract);
         foreach (var type in commandTypes)
         {
-            if(Activator.CreateInstance(type) is ICommand command)
+            if (Activator.CreateInstance(type) is ICommand command)
             {
                 _commands[command.Name] = command;
             }
@@ -34,17 +34,18 @@ public class CommandHandler
 
     private async Task HandleCommand(string command, string args)
     {
-        try{
-        if(_commands.TryGetValue(command.ToLower(), out var cmd))
+        try
         {
-            await cmd.Execute(args);
+            if (_commands.TryGetValue(command.ToLower(), out var cmd))
+            {
+                await cmd.Execute(args);
+            }
+            else
+            {
+                Logger.Error($"Command {command} not found");
+            }
         }
-        else
-        {
-            Logger.Error($"Command {command} not found");
-        }
-        }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             Logger.Error($"Error handling command {command}: {ex}");
         }

@@ -20,12 +20,6 @@
           "Microsoft.SourceLink.GitLab": "1.1.1"
         }
       },
-      "WebSocketSharp": {
-        "type": "Direct",
-        "requested": "[1.0.3-rc11, )",
-        "resolved": "1.0.3-rc11",
-        "contentHash": "7VCF7f7zVMOvLGD8LeGS4DVXc8lOcB6kXnUMeTxigu+PMiU+6wW5Olq2gYrDU8vDRKOwFY+5RyBaLyzb8skEzA=="
-      },
       "Microsoft.Build.Tasks.Git": {
         "type": "Transitive",
         "resolved": "1.1.1",
