@@ -10,12 +10,12 @@ namespace AetherLinkServer.Commands;
 public class AutoretainerCommand : ICommand
 {
     public string Name => "autoretainer";
-    public void Execute(string args)
+    public async Task Execute(string args)
     {
         if(args == string.Empty)
         {
             string error = "No arguments provided for command Autoretainer. See 'autoretainer help' for more information.";
-            Task.Run(async () => CommandHelper.SendCommand(error, WebSocketActionType.CommandResponse));
+            await CommandHelper.SendCommand(error, WebSocketActionType.CommandResponse);
         }
     }
 }

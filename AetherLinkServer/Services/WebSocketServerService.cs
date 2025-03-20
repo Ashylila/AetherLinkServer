@@ -20,7 +20,7 @@ public class WebSocketServer : IDisposable
     public WebSocket _webSocket;
     private CancellationTokenSource _cts = new CancellationTokenSource();
 
-    public delegate void CommandReceivedHandler(string command, string args);
+    public delegate Task CommandReceivedHandler(string command, string args);
     public event CommandReceivedHandler OnCommandReceived;
 
     public WebSocketServer(Plugin plugin)

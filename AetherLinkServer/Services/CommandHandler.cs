@@ -5,6 +5,7 @@ using System.Linq;
 using System;
 using AetherLinkServer.DalamudServices;
 using Dalamud.Plugin.Services;
+using System.Threading.Tasks;
 
 namespace AetherLinkServer.Services;
 public class CommandHandler
@@ -30,11 +31,11 @@ public class CommandHandler
         }
     }
 
-    private void HandleCommand(string command, string args)
+    private async Task HandleCommand(string command, string args)
     {
         if(_commands.TryGetValue(command.ToLower(), out var cmd))
         {
-            cmd.Execute(args);
+            await cmd.Execute(args);
         }
         else
         {

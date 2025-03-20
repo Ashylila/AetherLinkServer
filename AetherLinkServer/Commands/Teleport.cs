@@ -12,14 +12,14 @@ namespace AetherLinkServer.Commands;
 public class TeleportCommand : Models.ICommand
 {
     public string Name => "teleport";
-    public void Execute(string args)
+    public async Task Execute(string args)
     {
     if(!Player.Available)
     {
-        Task.Run(async () => CommandHelper.SendCommand("You must be in-game to use this command.", WebSocketActionType.CommandResponse));
+        await CommandHelper.SendCommand("You must be in-game to use this command.", WebSocketActionType.CommandResponse);
         return;
     }
     Chat.Instance.ExecuteCommand($"/tp {args}");
-    Task.Run(async () => CommandHelper.SendCommand("Teleporting...", WebSocketActionType.CommandResponse));
+    await CommandHelper.SendCommand("Teleporting...", WebSocketActionType.CommandResponse);
     }
 }
