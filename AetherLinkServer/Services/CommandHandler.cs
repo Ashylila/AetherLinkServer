@@ -8,6 +8,7 @@ using Dalamud.Plugin.Services;
 using System.Threading.Tasks;
 
 namespace AetherLinkServer.Services;
+
 public class CommandHandler
 {
     private IPluginLog Logger => Svc.Log;
@@ -33,6 +34,7 @@ public class CommandHandler
 
     private async Task HandleCommand(string command, string args)
     {
+        try{
         if(_commands.TryGetValue(command.ToLower(), out var cmd))
         {
             await cmd.Execute(args);
@@ -40,6 +42,11 @@ public class CommandHandler
         else
         {
             Logger.Error($"Command {command} not found");
+        }
+        }
+        catch(Exception ex)
+        {
+            Logger.Error($"Error handling command {command}: {ex}");
         }
     }
 

@@ -1,5 +1,4 @@
 using System;
-using System.Net.Http;
 using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
@@ -11,7 +10,7 @@ using AetherLinkServer.DalamudServices;
 using System.Text.Json;
 
 namespace AetherLinkServer.Services;
-
+#nullable disable
 public class WebSocketServer : IDisposable
 {
     private Plugin plugin;
@@ -42,7 +41,7 @@ private async void StartServer()
         {
             try
             {
-                var context = await _listener.GetContextAsync(); // <-- Can throw when stopping
+                var context = await _listener.GetContextAsync();
                 if (context.Request.IsWebSocketRequest)
                 {
                     var wsContext = await context.AcceptWebSocketAsync(null);
@@ -51,7 +50,7 @@ private async void StartServer()
                     _ = Task.Run(() => ListenForCommands());
                 }
             }
-            catch (HttpListenerException ex) when (ex.ErrorCode == 995) // Ignore shutdown exception
+            catch (HttpListenerException ex) when (ex.ErrorCode == 995)
             {
                 Logger.Debug("HttpListener was stopped.");
                 break;
