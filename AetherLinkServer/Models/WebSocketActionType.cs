@@ -4,5 +4,7 @@ public enum WebSocketActionType
 {
     ChatMessageReceived,
     SendChatMessage,
-    Command
+    Command,
+    InvalidCommandUsage,
+    CommandResponse,
 }

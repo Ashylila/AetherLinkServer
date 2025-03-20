@@ -21,7 +21,7 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static ICommandManager CommandManager { get; private set; } = null!;
     private const string CommandName = "/pmycommand";
 
-    private WebSocketServer server;
+    public static WebSocketServer server { get; private set; }
     private readonly CommandHandler _commandHandler;
     private readonly ChatHandler _chatHandler;
     public Configuration Configuration { get; init; }
@@ -37,8 +37,8 @@ public sealed class Plugin : IDalamudPlugin
         MainWindow = new MainWindow(this);
         
         server = new WebSocketServer(this);
-        _commandHandler = new CommandHandler(server);
-        _chatHandler = new ChatHandler(server);
+        _commandHandler = new CommandHandler(this);
+        _chatHandler = new ChatHandler(this);
 
         WindowSystem.AddWindow(MainWindow);
 

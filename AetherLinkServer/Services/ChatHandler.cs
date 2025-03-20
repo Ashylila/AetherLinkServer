@@ -6,13 +6,15 @@ using AetherLinkServer.Models;
 using System;
 using System.Threading.Tasks;
 using AetherLinkServer.DalamudServices;
+using AetherLinkServer;
 public class ChatHandler : IDisposable
 {
-    private readonly WebSocketServer _webSocketServer;
+
     private IChatGui _chatGui => Svc.Chat;
-    public ChatHandler(WebSocketServer webSocketServer)
+    private Plugin plugin;
+    public ChatHandler(Plugin plugin)
     {
-        _webSocketServer = webSocketServer;
+        this.plugin = plugin;
         _chatGui.ChatMessage += OnChatMessageReceived;
     }
 
@@ -26,11 +28,10 @@ public class ChatHandler : IDisposable
             Timestamp = DateTime.Now,
             Message = message.TextValue
         };
-        _ = Task.Run(() => _webSocketServer.SendMessage(chatMessage));
+        _ = Task.Run(() => Plugin.server.SendMessage(chatMessage));
     }
     public void Dispose()
     {
         _chatGui.ChatMessage -= OnChatMessageReceived;
-        _webSocketServer.Dispose();
     }
 }

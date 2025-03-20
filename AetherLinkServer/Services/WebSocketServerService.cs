@@ -17,7 +17,7 @@ public class WebSocketServer : IDisposable
     private Plugin plugin;
     private IPluginLog Logger => Svc.Log;
     private HttpListener _listener;
-    private WebSocket _webSocket;
+    public WebSocket _webSocket;
     private CancellationTokenSource _cts = new CancellationTokenSource();
 
     public delegate void CommandReceivedHandler(string command, string args);
@@ -29,25 +29,44 @@ public class WebSocketServer : IDisposable
         StartServer();
     }
 
-    private async void StartServer()
+private async void StartServer()
+{
+    try
     {
         _listener = new HttpListener();
-        _listener.Prefixes.Add($"http://localhost:{plugin.Configuration.Port}/"); // Placeholder URL
+        _listener.Prefixes.Add($"http://localhost:{plugin.Configuration.Port}/");
         _listener.Start();
         Logger.Debug($"WebSocket Server started on localhost:{plugin.Configuration.Port}");
 
         while (!_cts.Token.IsCancellationRequested)
         {
-            var context = await _listener.GetContextAsync();
-            if (context.Request.IsWebSocketRequest)
+            try
             {
-                var wsContext = await context.AcceptWebSocketAsync(null);
-                _webSocket = wsContext.WebSocket;
-                Logger.Debug("WebSocket connection established");
-                _ = Task.Run(() => ListenForCommands());
+                var context = await _listener.GetContextAsync(); // <-- Can throw when stopping
+                if (context.Request.IsWebSocketRequest)
+                {
+                    var wsContext = await context.AcceptWebSocketAsync(null);
+                    _webSocket = wsContext.WebSocket;
+                    Logger.Debug("WebSocket connection established");
+                    _ = Task.Run(() => ListenForCommands());
+                }
+            }
+            catch (HttpListenerException ex) when (ex.ErrorCode == 995) // Ignore shutdown exception
+            {
+                Logger.Debug("HttpListener was stopped.");
+                break;
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Unexpected error in StartServer: {ex}");
             }
         }
     }
+    catch (Exception ex)
+    {
+        Logger.Error($"Failed to start WebSocket server: {ex}");
+    }
+}
 
     private async Task ListenForCommands()
     {
@@ -125,10 +144,24 @@ public class WebSocketServer : IDisposable
     {
         throw new NotImplementedException();
     }
-    public void Dispose()
+public void Dispose()
+{
+    _cts.Cancel(); // Cancel tasks
+    _ = Task.Run(async () =>
     {
-        _cts.Cancel();
-        _webSocket?.CloseAsync(WebSocketCloseStatus.NormalClosure, "Plugin shutting down", CancellationToken.None);
+        if (_webSocket != null && _webSocket.State == WebSocketState.Open)
+        {
+            await _webSocket.CloseAsync(
+                WebSocketCloseStatus.NormalClosure,
+                "Plugin shutting down",
+                CancellationToken.None
+            );
+        }
+    }).ContinueWith(t =>
+    {
         _listener?.Stop();
-    }
+        _listener?.Close();
+        _cts.Dispose();
+    });
+}
 }

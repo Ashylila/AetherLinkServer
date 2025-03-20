@@ -12,11 +12,10 @@ public class CommandHandler
     private IPluginLog Logger => Svc.Log;
     private readonly Dictionary <string, ICommand> _commands = new();
 
-    public CommandHandler(WebSocketServer server)
+    public CommandHandler(Plugin plugin)
     {
-        
         LoadCommands();
-        server.OnCommandReceived += HandleCommand;
+        Plugin.server.OnCommandReceived += HandleCommand;
     }
 
     private void LoadCommands()
