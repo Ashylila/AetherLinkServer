@@ -19,14 +19,15 @@ public sealed class Plugin : IDalamudPlugin
 {
     [PluginService] internal static IDalamudPluginInterface PluginInterface { get; private set; } = null!;
     [PluginService] internal static ICommandManager CommandManager { get; private set; } = null!;
-    private const string CommandName = "/pmycommand";
+    private const string CommandName = "/aetherlinkserver";
 
-    public static WebSocketServer server { get; private set; }
+    
+    public static WebSocketServer server { get; set;}
     private readonly CommandHandler _commandHandler;
     private readonly ChatHandler _chatHandler;
     public Configuration Configuration { get; init; }
 
-    public readonly WindowSystem WindowSystem = new("SamplePlugin");
+    public readonly WindowSystem WindowSystem = new("AetherLinkServer");
     private MainWindow MainWindow { get; init; }
 
     public Plugin()
@@ -44,7 +45,7 @@ public sealed class Plugin : IDalamudPlugin
 
         CommandManager.AddHandler(CommandName, new CommandInfo(OnCommand)
         {
-            HelpMessage = "A useful message to display in /xlhelp"
+            HelpMessage = "Toggle the main Window"
         });
 
         PluginInterface.UiBuilder.Draw += DrawUI;
@@ -67,7 +68,6 @@ public sealed class Plugin : IDalamudPlugin
 
     private void OnCommand(string command, string args)
     {
-        // in response to the slash command, just toggle the display status of our main ui
         ToggleMainUI();
     }
 

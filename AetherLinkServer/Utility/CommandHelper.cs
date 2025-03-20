@@ -6,7 +6,7 @@ using System.Text.Json;
 namespace AetherLinkServer.Utility;
 public static class CommandHelper
 {
-    public static WebSocketMessage<T> createCommand<T> (T command, WebSocketActionType type)
+    private static WebSocketMessage<T> CreateCommand<T> (T command, WebSocketActionType type)
     {
         var websocketcommand = new WebSocketMessage<T>
         {
@@ -14,5 +14,11 @@ public static class CommandHelper
             Data = command
         };
         return websocketcommand;
+    }
+    public async static void SendCommand<T>(T command, WebSocketActionType type)
+    {
+        var websocketcommand = CreateCommand(command, type);
+        var json = JsonSerializer.Serialize(websocketcommand);
+        await Plugin.server.SendMessage(websocketcommand);
     }
 }

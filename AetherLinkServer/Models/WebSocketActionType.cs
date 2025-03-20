@@ -7,5 +7,6 @@ public enum WebSocketActionType
     Command,
     InvalidCommandUsage,
     CommandResponse,
-    ChatMessage
+    ChatMessage,
+    CharacterStatusUpdate
 }

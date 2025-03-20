@@ -7,10 +7,13 @@ using System;
 using System.Threading.Tasks;
 using AetherLinkServer.DalamudServices;
 using AetherLinkServer;
+using AetherLinkServer.Utility;
+using WebSocketSharp;
 public class ChatHandler : IDisposable
 {
 
     private IChatGui _chatGui => Svc.Chat;
+    private IPluginLog Logger => Svc.Log;
     private Plugin plugin;
     public ChatHandler(Plugin plugin)
     {
@@ -20,7 +23,7 @@ public class ChatHandler : IDisposable
 
     private void OnChatMessageReceived(XivChatType type, int timestamp, ref SeString sender, ref SeString message, ref bool isHandled)
     {
-        if((int)type >= 8000) return;
+        if((int)type >= 2000) return;
         var chatMessage = new ChatMessage
         {
             Type = type,
@@ -28,12 +31,8 @@ public class ChatHandler : IDisposable
             Timestamp = DateTime.Now,
             Message = message.TextValue
         };
-        var webMessage = new WebSocketMessage<ChatMessage>
-        {
-            Type = WebSocketActionType.ChatMessage,
-            Data = chatMessage
-        };
-        _ = Task.Run(() => Plugin.server.SendMessage(webMessage));
+        Logger.Debug($"Chat message received: {chatMessage.Sender}: {chatMessage.Message}");
+        _ = Task.Run(() => CommandHelper.SendCommand(chatMessage, WebSocketActionType.ChatMessage));
     }
     public void Dispose()
     {
