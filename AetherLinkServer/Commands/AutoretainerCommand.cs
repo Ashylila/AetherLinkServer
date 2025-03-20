@@ -15,7 +15,7 @@ public class AutoretainerCommand : ICommand
         if(args == string.Empty)
         {
             string error = "No arguments provided for command Autoretainer. See 'autoretainer help' for more information.";
-             Task.Run(async () => Plugin.server._webSocket.SendAsync(new ArraySegment<byte>(CommandHelper.createCommand(error, WebSocketActionType.InvalidCommandUsage)), WebSocketMessageType.Text, true, CancellationToken.None));
+            Task.Run(async () => Plugin.server.SendMessage(CommandHelper.createCommand(error, WebSocketActionType.CommandResponse)));
         }
     }
 }

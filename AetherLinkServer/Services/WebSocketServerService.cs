@@ -85,9 +85,10 @@ private async void StartServer()
                 var json = Encoding.UTF8.GetString(buffer, 0, result.Count);
                 try
                 {
-                    var message = JsonSerializer.Deserialize<WebSocketMessage>(json);
+                    var message = JsonSerializer.Deserialize<WebSocketMessage<object>>(json);
                     if(message != null)
                     {
+                        Logger.Debug($"Received WebSocket message: {message.Type.ToString()} - {message.Data}");
                         ProcessMessage(message);
                     }
                 }catch(Exception ex)
@@ -106,29 +107,32 @@ private async void StartServer()
         }
     }
 
-    public async Task SendMessage(ChatMessage chatMessage)
+    public async Task SendMessage<T>(WebSocketMessage<T> webSocketMessage)
     {
         if (_webSocket?.State == WebSocketState.Open)
         {
-            var messageJson = System.Text.Json.JsonSerializer.Serialize(chatMessage);
+            var messageJson = System.Text.Json.JsonSerializer.Serialize(webSocketMessage);
             var messageBytes = Encoding.UTF8.GetBytes(messageJson);
             await _webSocket.SendAsync(new ArraySegment<byte>(messageBytes), WebSocketMessageType.Text, true, CancellationToken.None);
         }
     }
 
-    private void ProcessMessage(WebSocketMessage message)
+    private void ProcessMessage(WebSocketMessage<object> message)
     {
+        if (message.Data is JsonElement data && data.ValueKind == JsonValueKind.String)
+        {
         switch(message.Type)
         {
             case WebSocketActionType.Command:
-                ProcessCommand(message.Data);
+                ProcessCommand(data.GetString());
                 break;
             case WebSocketActionType.SendChatMessage:
-                SendChatMessage(message.Data);
+                SendChatMessage(data.GetString());
                 break;
             default:
                 Logger.Error($"Unknown message type: {message.Type}");
                 break;
+        }
         }
     }
 

@@ -13,6 +13,6 @@ public class TeleportCommand : Models.ICommand
     public void Execute(string args)
     {
     Chat.Instance.ExecuteCommand($"/tp {args}");
-    Task.Run(async () => Plugin.server._webSocket.SendAsync(new ArraySegment<byte>(CommandHelper.createCommand($"Teleporting to {args}", WebSocketActionType.CommandResponse)), WebSocketMessageType.Text, true, CancellationToken.None));
+    Task.Run(async () => Plugin.server.SendMessage(CommandHelper.createCommand("Teleporting...", WebSocketActionType.CommandResponse)));
     }
 }

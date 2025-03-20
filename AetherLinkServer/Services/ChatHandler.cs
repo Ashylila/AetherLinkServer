@@ -28,7 +28,12 @@ public class ChatHandler : IDisposable
             Timestamp = DateTime.Now,
             Message = message.TextValue
         };
-        _ = Task.Run(() => Plugin.server.SendMessage(chatMessage));
+        var webMessage = new WebSocketMessage<ChatMessage>
+        {
+            Type = WebSocketActionType.ChatMessage,
+            Data = chatMessage
+        };
+        _ = Task.Run(() => Plugin.server.SendMessage(webMessage));
     }
     public void Dispose()
     {
