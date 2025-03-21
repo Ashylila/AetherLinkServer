@@ -1,5 +1,6 @@
 
 using AetherLinkServer.Models;
+using System;
 using System.Text;
 
 using System.Text.Json;
@@ -20,6 +21,17 @@ public static class CommandHelper
     {
         var websocketcommand = CreateCommand(command, type);
         var json = JsonSerializer.Serialize(websocketcommand);
+        await Plugin.server.SendMessage(websocketcommand);
+    }
+    public async static Task SendCommandResponse(string message, CommandResponseType type)
+    {
+        var commandResponse = new CommandResponse
+        {
+            Message = message,
+            Type = type,
+            TimeStamp = DateTime.Now
+        };
+        var websocketcommand = CreateCommand(commandResponse, WebSocketActionType.CommandResponse);
         await Plugin.server.SendMessage(websocketcommand);
     }
 }

@@ -15,7 +15,7 @@ public class AutoretainerCommand : ICommand
         if(args == string.Empty)
         {
             string error = "No arguments provided for command Autoretainer. See 'autoretainer help' for more information.";
-            await CommandHelper.SendCommand(error, WebSocketActionType.CommandResponse);
+            await CommandHelper.SendCommandResponse(error, CommandResponseType.Warning);
         }
     }
 }
