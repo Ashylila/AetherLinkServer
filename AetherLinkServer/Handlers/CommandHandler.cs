@@ -38,7 +38,7 @@ public class CommandHandler
         {
             if (_commands.TryGetValue(command.ToLower(), out var cmd))
             {
-                await cmd.Execute(args);
+                await Svc.Framework.Run(async()=> await cmd.Execute(args));
             }
             else
             {
