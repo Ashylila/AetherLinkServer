@@ -1,17 +1,17 @@
-using System.Collections.Generic;
-using System.Reflection;
-using AetherLinkServer.Models;
-using System.Linq;
 using System;
-using AetherLinkServer.DalamudServices;
-using Dalamud.Plugin.Services;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
+using AetherLinkServer.DalamudServices;
+using AetherLinkServer.Models;
+using AetherLinkServer.Utility;
+using Dalamud.Plugin.Services;
 
 namespace AetherLinkServer.Handlers;
 
 public class CommandHandler
 {
-    private IPluginLog Logger => Svc.Log;
     private readonly Dictionary<string, ICommand> _commands = new();
 
     public CommandHandler(Plugin plugin)
@@ -20,16 +20,15 @@ public class CommandHandler
         Plugin.server.OnCommandReceived += HandleCommand;
     }
 
+    private IPluginLog Logger => Svc.Log;
+
     private void LoadCommands()
     {
-        var commandTypes = Assembly.GetExecutingAssembly().GetTypes().Where(t => typeof(ICommand).IsAssignableFrom(t) && !t.IsInterface && !t.IsAbstract);
+        var commandTypes = Assembly.GetExecutingAssembly().GetTypes()
+                                   .Where(t => typeof(ICommand).IsAssignableFrom(t) && !t.IsInterface && !t.IsAbstract);
         foreach (var type in commandTypes)
-        {
             if (Activator.CreateInstance(type) is ICommand command)
-            {
                 _commands[command.Name] = command;
-            }
-        }
     }
 
     private async Task HandleCommand(string command, string args)
@@ -37,11 +36,11 @@ public class CommandHandler
         try
         {
             if (_commands.TryGetValue(command.ToLower(), out var cmd))
-            {
-                await Svc.Framework.Run(async()=> await cmd.Execute(args));
-            }
+                await Svc.Framework.Run(async () => await cmd.Execute(args));
             else
             {
+                await CommandHelper.SendCommandResponse("Command not found. See 'help' for available commands",
+                                                        CommandResponseType.Error);
                 Logger.Error($"Command {command} not found");
             }
         }
@@ -50,5 +49,4 @@ public class CommandHandler
             Logger.Error($"Error handling command {command}: {ex}");
         }
     }
-
 }

@@ -1,22 +1,20 @@
 using System;
 using System.Linq;
 using AetherLinkServer.DalamudServices;
-using AetherLinkServer.IPC;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using Lumina.Excel.Sheets;
-using Lumina.Extensions;
-using Serilog.Core;
 
 namespace AetherLinkServer.Utility;
 
 public static class TeleportHelper
 {
     private static IPluginLog Logger => Svc.Log;
-    public static unsafe bool TryFindAetheryteByName(string name, out TeleportInfo info, out string AetheryteName) 
+
+    public static unsafe bool TryFindAetheryteByName(string name, out TeleportInfo info, out string aetherName)
     {
         info = new TeleportInfo();
-        AetheryteName = string.Empty;
+        aetherName = string.Empty;
         try
         {
             var tp = Telepo.Instance();
@@ -32,7 +30,7 @@ public static class TeleportHelper
                 if (!result && !aetheryteName.Equals(name, StringComparison.OrdinalIgnoreCase))
                     continue;
                 info = tpInfo;
-                AetheryteName = aetheryteName;
+                aetherName = aetheryteName;
                 return true;
             }
         }
@@ -44,6 +42,7 @@ public static class TeleportHelper
 
         return false;
     }
+
     public static unsafe bool Teleport(uint aetheryteId, byte subIndex)
     {
         return Telepo.Instance()->Teleport(aetheryteId, subIndex);

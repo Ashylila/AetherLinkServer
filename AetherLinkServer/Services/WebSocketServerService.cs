@@ -1,26 +1,24 @@
 using System;
+using System.Net;
 using System.Net.WebSockets;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Net;
+using AetherLinkServer.DalamudServices;
 using AetherLinkServer.Models;
 using Dalamud.Plugin.Services;
-using AetherLinkServer.DalamudServices;
-using System.Text.Json;
 
 namespace AetherLinkServer.Services;
 #nullable disable
 public class WebSocketServer : IDisposable
 {
-    private Plugin plugin;
-    private IPluginLog Logger => Svc.Log;
+    public delegate Task CommandReceivedHandler(string command, string args);
+
+    private readonly CancellationTokenSource _cts = new();
     private HttpListener _listener;
     public WebSocket _webSocket;
-    private CancellationTokenSource _cts = new CancellationTokenSource();
-
-    public delegate Task CommandReceivedHandler(string command, string args);
-    public event CommandReceivedHandler OnCommandReceived;
+    private readonly Plugin plugin;
 
     public WebSocketServer(Plugin plugin)
     {
@@ -28,47 +26,70 @@ public class WebSocketServer : IDisposable
         StartServer();
     }
 
-private async void StartServer()
-{
-    try
-    {
-        //var ip = await PortForwarding.GetPublicIpAddress();
-        //var result = await PortForwarding.EnableUpnpPortForwarding(plugin.Configuration.Port);
-        //if (!result) return;
-        _listener = new HttpListener();
-        _listener.Prefixes.Add($"http://localhost:{plugin.Configuration.Port}/");
-        _listener.Start();
-        Logger.Debug($"WebSocket Server started on localhost:{plugin.Configuration.Port}");
+    private IPluginLog Logger => Svc.Log;
 
-        while (!_cts.Token.IsCancellationRequested)
+    public void Dispose()
+    {
+        _cts.Cancel(); // Cancel tasks
+        _ = Task.Run(async () =>
         {
-            try
+            if (_webSocket != null && _webSocket.State == WebSocketState.Open)
             {
-                var context = await _listener.GetContextAsync();
-                if (context.Request.IsWebSocketRequest)
+                await _webSocket.CloseAsync(
+                    WebSocketCloseStatus.NormalClosure,
+                    "Plugin shutting down",
+                    CancellationToken.None
+                );
+            }
+        }).ContinueWith(t =>
+        {
+            _listener?.Stop();
+            _listener?.Close();
+            _cts.Dispose();
+        });
+    }
+
+    public event CommandReceivedHandler OnCommandReceived;
+
+    private async void StartServer()
+    {
+        try
+        {
+            //var ip = await PortForwarding.GetPublicIpAddress();
+            //var result = await PortForwarding.EnableUpnpPortForwarding(plugin.Configuration.Port);
+            //if (!result) return;
+            _listener = new HttpListener();
+            _listener.Prefixes.Add($"http://localhost:{plugin.Configuration.Port}/");
+            _listener.Start();
+            Logger.Debug($"WebSocket Server started on localhost:{plugin.Configuration.Port}");
+
+            while (!_cts.Token.IsCancellationRequested)
+                try
                 {
-                    var wsContext = await context.AcceptWebSocketAsync(null);
-                    _webSocket = wsContext.WebSocket;
-                    Logger.Debug("WebSocket connection established");
-                    _ = Task.Run(() => ListenForCommands());
+                    var context = await _listener.GetContextAsync();
+                    if (context.Request.IsWebSocketRequest)
+                    {
+                        var wsContext = await context.AcceptWebSocketAsync(null);
+                        _webSocket = wsContext.WebSocket;
+                        Logger.Debug("WebSocket connection established");
+                        _ = Task.Run(() => ListenForCommands());
+                    }
                 }
-            }
-            catch (HttpListenerException ex) when (ex.ErrorCode == 995)
-            {
-                Logger.Debug("HttpListener was stopped.");
-                break;
-            }
-            catch (Exception ex)
-            {
-                Logger.Error($"Unexpected error in StartServer: {ex}");
-            }
+                catch (HttpListenerException ex) when (ex.ErrorCode == 995)
+                {
+                    Logger.Debug("HttpListener was stopped.");
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error($"Unexpected error in StartServer: {ex}");
+                }
+        }
+        catch (Exception ex)
+        {
+            Logger.Error($"Failed to start WebSocket server: {ex}");
         }
     }
-    catch (Exception ex)
-    {
-        Logger.Error($"Failed to start WebSocket server: {ex}");
-    }
-}
 
     private async Task ListenForCommands()
     {
@@ -84,16 +105,18 @@ private async void StartServer()
                     Logger.Debug("WebSocket connection closed");
                     break;
                 }
+
                 var json = Encoding.UTF8.GetString(buffer, 0, result.Count);
                 try
                 {
                     var message = JsonSerializer.Deserialize<WebSocketMessage<object>>(json);
-                    if(message != null)
+                    if (message != null)
                     {
                         Logger.Debug($"Received WebSocket message: {message.Type.ToString()} - {message.Data}");
                         ProcessMessage(message);
                     }
-                }catch(Exception ex)
+                }
+                catch (Exception ex)
                 {
                     Logger.Error($"Error deserializing WebSocket message: {ex.Message}");
                 }
@@ -113,9 +136,11 @@ private async void StartServer()
     {
         if (_webSocket?.State == WebSocketState.Open)
         {
-            var messageJson = System.Text.Json.JsonSerializer.Serialize(webSocketMessage);
+            var messageJson = JsonSerializer.Serialize(webSocketMessage);
+            Logger.Verbose($"Sending message: {messageJson}");
             var messageBytes = Encoding.UTF8.GetBytes(messageJson);
-            await _webSocket.SendAsync(new ArraySegment<byte>(messageBytes), WebSocketMessageType.Text, true, CancellationToken.None);
+            await _webSocket.SendAsync(new ArraySegment<byte>(messageBytes), WebSocketMessageType.Text, true,
+                                       CancellationToken.None);
         }
     }
 
@@ -123,18 +148,18 @@ private async void StartServer()
     {
         if (message.Data is JsonElement data && data.ValueKind == JsonValueKind.String)
         {
-        switch(message.Type)
-        {
-            case WebSocketActionType.Command:
-                ProcessCommand(data.GetString());
-                break;
-            case WebSocketActionType.SendChatMessage:
-                SendChatMessage(data.GetString());
-                break;
-            default:
-                Logger.Error($"Unknown message type: {message.Type}");
-                break;
-        }
+            switch (message.Type)
+            {
+                case WebSocketActionType.Command:
+                    ProcessCommand(data.GetString());
+                    break;
+                case WebSocketActionType.SendChatMessage:
+                    SendChatMessage(data.GetString());
+                    break;
+                default:
+                    Logger.Error($"Unknown message type: {message.Type}");
+                    break;
+            }
         }
     }
 
@@ -150,24 +175,4 @@ private async void StartServer()
     {
         throw new NotImplementedException();
     }
-public void Dispose()
-{
-    _cts.Cancel(); // Cancel tasks
-    _ = Task.Run(async () =>
-    {
-        if (_webSocket != null && _webSocket.State == WebSocketState.Open)
-        {
-            await _webSocket.CloseAsync(
-                WebSocketCloseStatus.NormalClosure,
-                "Plugin shutting down",
-                CancellationToken.None
-            );
-        }
-    }).ContinueWith(t =>
-    {
-        _listener?.Stop();
-        _listener?.Close();
-        _cts.Dispose();
-    });
-}
 }

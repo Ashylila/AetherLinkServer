@@ -1,9 +1,10 @@
+#nullable disable
 
 using System;
 using Dalamud.Game.Text;
-#nullable disable
 
 namespace AetherLinkServer.Models;
+
 public class ChatMessage
 {
     public string Sender { get; set; }

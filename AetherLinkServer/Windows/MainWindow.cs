@@ -1,10 +1,7 @@
 ﻿using System;
 using System.Numerics;
-using Dalamud.Interface.Utility;
-using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
 using ImGuiNET;
-using Lumina.Excel.Sheets;
 
 namespace AetherLinkServer.Windows;
 
@@ -29,9 +26,5 @@ public class MainWindow : Window, IDisposable
 
     public void Dispose() { }
 
-    public override void Draw()
-    {
-        
-    
-    }
+    public override void Draw() { }
 }

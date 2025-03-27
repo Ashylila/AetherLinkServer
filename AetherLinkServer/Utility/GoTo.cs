@@ -24,7 +24,7 @@ namespace AetherLinkServer.Utility
         internal static void Invoke(uint territoryType, List<Vector3> moveLocations) => Invoke(territoryType, moveLocations, 0, 0.25f, 0.25f, false, false, true);
 
         internal static void Invoke(uint territoryType, uint gameObjectDataId, float tollerance = 0.25f, float lastPointTollerance = 0.25f, bool useAethernetTravel = false, bool useFlight = false, bool useMesh = true) => Invoke(territoryType, [], gameObjectDataId, tollerance, lastPointTollerance, useAethernetTravel, useFlight, useMesh);
-        
+
         internal static void Invoke(uint territoryType, Vector3 moveLocation, float tollerance = 0.25f, float lastPointTollerance = 0.25f, bool useAethernetTravel = false, bool useFlight = false, bool useMesh = true) => Invoke(territoryType, [moveLocation], 0, tollerance, lastPointTollerance, useAethernetTravel, useFlight, useMesh);
 
         internal static void Invoke(uint territoryType, List<Vector3> moveLocations, float tollerance = 0.25f, float lastPointTollerance = 0.25f, bool useAethernetTravel = false, bool useFlight = false, bool useMesh = true) => Invoke(territoryType, moveLocations, 0, tollerance, lastPointTollerance, useAethernetTravel, useFlight, useMesh);
@@ -47,7 +47,7 @@ namespace AetherLinkServer.Utility
             }
         }
 
-        internal unsafe static void Stop() 
+        internal unsafe static void Stop()
         {
             if (State == ActionState.Running)
                 Svc.Log.Info($"Goto Finished");
@@ -109,7 +109,7 @@ namespace AetherLinkServer.Utility
             {
                 uint which = _territoryType == 128 ? 1u : (_territoryType == 132 ? 2u : (_territoryType == 130 ? 3u : 0u));
                 bool moveFromInnOrBarracks = _territoryType == 128 || _territoryType == 132 || _territoryType == 130;
-                
+
                 if (moveFromInnOrBarracks && (Svc.ClientState.TerritoryType == GotoBarracksHelper.BarracksTerritoryType(which) || Svc.ClientState.TerritoryType == GotoInnHelper.InnTerritoryType(which)))
                 {
                     var exitGameObject = Svc.ClientState.TerritoryType == GotoBarracksHelper.BarracksTerritoryType(which) ? ObjectHelper.GetObjectByDataId(GotoBarracksHelper.ExitBarracksDoorDataId(which)) : ObjectHelper.GetObjectByDataId(GotoInnHelper.ExitInnDoorDataId(which));
@@ -118,7 +118,7 @@ namespace AetherLinkServer.Utility
                             AddonHelper.ClickSelectYesno();
                     return;
                 }
-               
+
                 Aetheryte? aetheryte = MapHelper.GetClosestAetheryte(_territoryType, _moveLocations.Count > 0 ? _moveLocations[0] : Vector3.Zero);
                 if (aetheryte == null)
                 {
@@ -188,3 +188,5 @@ namespace AetherLinkServer.Utility
     }
 }
 */
+
+

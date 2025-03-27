@@ -1,14 +1,15 @@
-
-using AetherLinkServer.Models;
 using System;
-using System.Text;
-
 using System.Text.Json;
 using System.Threading.Tasks;
+using AetherLinkServer.Models;
+using ECommons.DalamudServices;
+using FFXIVClientStructs;
+
 namespace AetherLinkServer.Utility;
+
 public static class CommandHelper
 {
-    private static WebSocketMessage<T> CreateCommand<T> (T command, WebSocketActionType type)
+    private static WebSocketMessage<T> CreateCommand<T>(T command, WebSocketActionType type)
     {
         var websocketcommand = new WebSocketMessage<T>
         {
@@ -17,14 +18,23 @@ public static class CommandHelper
         };
         return websocketcommand;
     }
-    public async static Task SendCommand<T>(T command, WebSocketActionType type)
+
+    public static async Task SendCommand<T>(T command, WebSocketActionType type)
     {
         var websocketcommand = CreateCommand(command, type);
         var json = JsonSerializer.Serialize(websocketcommand);
+        
         await Plugin.server.SendMessage(websocketcommand);
     }
-    public async static Task SendCommandResponse(string message, CommandResponseType type)
+
+    public static async Task SendCommandResponse(string message, CommandResponseType type)
     {
-        await Plugin.server.SendMessage(CreateCommand(new CommandResponse{Message = message, Type = type, TimeStamp = DateTime.Now}, WebSocketActionType.CommandResponse));
+        var commandResponse = new CommandResponse
+        {
+            Message = message,
+            Type = type
+        };
+        var command = CreateCommand(commandResponse, WebSocketActionType.CommandResponse);
+        await Plugin.server.SendMessage(command);
     }
 }

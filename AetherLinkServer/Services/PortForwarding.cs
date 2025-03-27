@@ -1,16 +1,18 @@
 using System;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using ECommons.DalamudServices;
 using Open.Nat;
 
 namespace AetherLinkServer.Services;
+
 public class PortForwarding
 {
     public static async Task<bool> EnableUpnpPortForwarding(int port)
     {
         var discoverer = new NatDiscoverer();
-        var cts = new System.Threading.CancellationTokenSource(5000);
+        var cts = new CancellationTokenSource(5000);
 
         try
         {
@@ -21,17 +23,17 @@ public class PortForwarding
         }
         catch (Exception ex)
         {
-            Svc.Log.Error(ex,"UPnP failed");
+            Svc.Log.Error(ex, "UPnP failed");
             return false;
         }
     }
+
     internal static async Task<string> GetPublicIpAddress()
     {
         using (var client = new HttpClient())
         {
-            string ip = await client.GetStringAsync("https://api.ipify.org");
+            var ip = await client.GetStringAsync("https://api.ipify.org");
             return ip;
         }
     }
 }
-
