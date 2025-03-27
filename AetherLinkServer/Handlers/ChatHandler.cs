@@ -8,6 +8,8 @@ using System.Threading.Tasks;
 using AetherLinkServer.DalamudServices;
 using AetherLinkServer;
 using AetherLinkServer.Utility;
+
+namespace AetherLinkServer.Handlers;
 public class ChatHandler : IDisposable
 {
 

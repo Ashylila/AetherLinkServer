@@ -32,8 +32,11 @@ private async void StartServer()
 {
     try
     {
+        var ip = await PortForwarding.GetPublicIpAddress();
+        var result = await PortForwarding.EnableUpnpPortForwarding(plugin.Configuration.Port);
+        if (!result) return;
         _listener = new HttpListener();
-        _listener.Prefixes.Add($"http://localhost:{plugin.Configuration.Port}/");
+        _listener.Prefixes.Add($"http://{ip}:{plugin.Configuration.Port}/");
         _listener.Start();
         Logger.Debug($"WebSocket Server started on localhost:{plugin.Configuration.Port}");
 

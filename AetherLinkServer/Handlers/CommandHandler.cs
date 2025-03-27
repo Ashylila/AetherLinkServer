@@ -7,7 +7,7 @@ using AetherLinkServer.DalamudServices;
 using Dalamud.Plugin.Services;
 using System.Threading.Tasks;
 
-namespace AetherLinkServer.Services;
+namespace AetherLinkServer.Handlers;
 
 public class CommandHandler
 {
