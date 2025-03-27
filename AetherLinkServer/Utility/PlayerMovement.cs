@@ -16,7 +16,7 @@ namespace AetherLinkServer.Utility
 
     internal static class PlayerMovement
     {
-        public unsafe static bool IsFlyingSupported => Svc.ClientState.TerritoryType != 0 && Svc.Data.GetExcelSheet<TerritoryType>().GetRowOrDefault(Svc.ClientState.TerritoryType)?.TerritoryIntendedUse.RowId is 1 or 49 or 47 && PlayerState.Instance()->IsAetherCurrentZoneComplete(Svc.Data.GetExcelSheet<TerritoryType>()!.GetRow(Svc.ClientState.TerritoryType)!.Unknown4);
+        public unsafe static bool IsFlyingSupported => Svc.ClientState.TerritoryType != 0 && Svc.Data.GetExcelSheet<TerritoryType>().GetRowOrDefault(Svc.ClientState.TerritoryType)?.TerritoryIntendedUse.RowId is 1 or 49 or 47 && PlayerState.Instance()->IsAetherCurrentZoneComplete(Svc.Data.GetExcelSheet<TerritoryType>()!.GetRow(Svc.ClientState.TerritoryType)!.AetherCurrentCompFlgSet.RowId);
 
         internal static void Stop() => VNavmesh_IPCSubscriber.Path_Stop();
 
@@ -36,21 +36,21 @@ namespace AetherLinkServer.Utility
             if (fly && !IsFlyingSupported)
                 fly = false;
 
-            if (!Conditions.IsMounted && IsFlyingSupported)
+            if (!Conditions.Instance()->Mounted && IsFlyingSupported)
             {
                 if (!PlayerHelper.IsCasting)
                     ActionManager.Instance()->UseAction(ActionType.GeneralAction, 9);
                 return false;
             }
 
-            if (fly && !Conditions.IsInFlight)
+            if (fly && !Conditions.Instance()->InFlight)
             {
                 if (!PlayerHelper.IsCasting)
                     ActionManager.Instance()->UseAction(ActionType.GeneralAction, 2);
                 return false;
             }
 
-            if (position == Vector3.Zero || (Vector3.Distance(position, Player.Position) - (useMesh ? 0 : 1)/*fix for vnav's diff Distance calc*/) <= lastPointTollerance)
+            if (position == Vector3.Zero || (Vector3.Distance(position, Player.Position) - (useMesh ? 0 : 1) <= lastPointTollerance))
             {
                 if (position != Vector3.Zero)
                     VNavmesh_IPCSubscriber.Path_Stop();

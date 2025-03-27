@@ -25,13 +25,6 @@ public static class CommandHelper
     }
     public async static Task SendCommandResponse(string message, CommandResponseType type)
     {
-        var commandResponse = new CommandResponse
-        {
-            Message = message,
-            Type = type,
-            TimeStamp = DateTime.Now
-        };
-        var websocketcommand = CreateCommand(commandResponse, WebSocketActionType.CommandResponse);
-        await Plugin.server.SendMessage(websocketcommand);
+        await Plugin.server.SendMessage(CreateCommand(new CommandResponse{Message = message, Type = type, TimeStamp = DateTime.Now}, WebSocketActionType.CommandResponse));
     }
 }

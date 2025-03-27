@@ -12,6 +12,7 @@ using static AetherLinkServer.Data.Enums;
 namespace AetherLinkServer.Utility
 {
     using ECommons.GameHelpers;
+    using FFXIVClientStructs.FFXIV.Client.UI.Misc;
     using Lumina.Excel.Sheets;
 
     internal static class PlayerHelper
@@ -111,11 +112,11 @@ namespace AetherLinkServer.Utility
 
         internal static unsafe bool IsCasting => Player.Character->IsCasting;
 
-        internal static unsafe bool IsMoving => AgentMap.Instance()->IsPlayerMoving == 1;
+        internal static unsafe bool IsMoving => AgentMap.Instance()->IsPlayerMoving;
 
         internal static unsafe bool InCombat => Svc.Condition[ConditionFlag.InCombat];
 
-        /*internal static unsafe short GetCurrentItemLevelFromGearSet(int gearsetId = -1, bool updateGearsetBeforeCheck = true)
+        internal static unsafe short GetCurrentItemLevelFromGearSet(int gearsetId = -1, bool updateGearsetBeforeCheck = true)
         {
             RaptureGearsetModule* gearsetModule = RaptureGearsetModule.Instance();
             if (gearsetId < 0)
@@ -123,7 +124,7 @@ namespace AetherLinkServer.Utility
             if (updateGearsetBeforeCheck)
                 gearsetModule->UpdateGearset(gearsetId);
             return gearsetModule->GetGearset(gearsetId)->ItemLevel;
-        }*/
+        }
 
         //internal static Job GetJob() => Player.Available ? Player.Job : Plugin.JobLastKnown;
 
