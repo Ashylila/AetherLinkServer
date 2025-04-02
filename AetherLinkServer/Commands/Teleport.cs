@@ -12,11 +12,11 @@ public class TeleportCommand : ICommand
 {
     public string Name => "teleport";
 
-    public async Task Execute(string args)
+    public async Task Execute(string args, Plugin plugin)
     {
         if (Svc.ClientState.LocalPlayer == null)
         {
-            await CommandHelper.SendCommand("Player is busy or not in-game.", WebSocketActionType.CommandResponse);
+            await CommandHelper.SendCommandResponse("Player is busy or not in-game.", CommandResponseType.Error);
             return;
         }
 

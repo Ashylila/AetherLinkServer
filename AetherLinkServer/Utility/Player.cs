@@ -1,5 +1,6 @@
 using System.Linq;
 using Dalamud.Game.ClientState.Conditions;
+using Dalamud.Game.ClientState.Objects.Types;
 using ECommons;
 using ECommons.DalamudServices;
 using ECommons.ExcelServices;
@@ -9,6 +10,7 @@ using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Client.UI.Misc;
+using FFXIVClientStructs.FFXIV.Common.Math;
 using Lumina.Excel.Sheets;
 using static AetherLinkServer.Data.Enums;
 
@@ -22,6 +24,10 @@ internal static class PlayerHelper
         return playerState->ClassJobLevels[Svc.Data.GetExcelSheet<ClassJob>().GetRowOrDefault((uint)(job ?? GetJob()))?.ExpArrayIndex ?? 0];
     }
 */
+    internal static unsafe float GetDistanceToPlayer(IGameObject gameObject) => GetDistanceToPlayer(gameObject.Position);
+
+    internal static unsafe float GetDistanceToPlayer(Vector3 v3) => Vector3.Distance(v3, Player.GameObject->Position);
+    public static ActionState state = ActionState.None;
     internal static float JobRange
     {
         get

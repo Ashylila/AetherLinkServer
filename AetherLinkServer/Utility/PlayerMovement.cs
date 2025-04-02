@@ -22,7 +22,6 @@ internal static class PlayerMovement
                                                        Svc.Data.GetExcelSheet<TerritoryType>()!.GetRow(
                                                               Svc.ClientState.TerritoryType)!.AetherCurrentCompFlgSet
                                                           .RowId);
-
     internal static void Stop()
     {
         VNavmesh_IPCSubscriber.Path_Stop();

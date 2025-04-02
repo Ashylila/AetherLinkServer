@@ -1,5 +1,6 @@
 ﻿using AetherLinkServer.DalamudServices;
 using AetherLinkServer.Handlers;
+using AetherLinkServer.IPC;
 using AetherLinkServer.Services;
 using AetherLinkServer.Windows;
 using Dalamud.Game.Command;
@@ -17,6 +18,7 @@ public sealed class Plugin : IDalamudPlugin
     private const string CommandName = "/aetherlinkserver";
     private readonly ChatHandler _chatHandler;
     private readonly CommandHandler _commandHandler;
+    public readonly AutoRetainerHandler _autoRetainerHandler;
     public readonly WindowSystem WindowSystem = new("AetherLinkServer");
 
     public Plugin()
@@ -25,10 +27,13 @@ public sealed class Plugin : IDalamudPlugin
         Svc.Init(PluginInterface);
         Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
         MainWindow = new MainWindow(this);
-
+        
+        _autoRetainerHandler = new();
         server = new WebSocketServer(this);
         _commandHandler = new CommandHandler(this);
+        
         _chatHandler = new ChatHandler(this);
+        
 
         WindowSystem.AddWindow(MainWindow);
 
@@ -67,6 +72,7 @@ public sealed class Plugin : IDalamudPlugin
     private void OnCommand(string command, string args)
     {
         ToggleMainUI();
+        var random = AutoRetainer_IPCSubscriber.IsBusy();
     }
 
     private void DrawUI()

@@ -13,7 +13,8 @@ public static class Enums
     public enum ActionState
     {
         None = 0,
-        Running = 1
+        Running = 1,
+        Teleporting = 2
     }
 
     [Flags]

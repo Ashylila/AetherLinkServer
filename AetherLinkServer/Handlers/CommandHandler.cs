@@ -13,9 +13,11 @@ namespace AetherLinkServer.Handlers;
 public class CommandHandler
 {
     private readonly Dictionary<string, ICommand> _commands = new();
+    private Plugin plugin;
 
     public CommandHandler(Plugin plugin)
     {
+        this.plugin = plugin;
         LoadCommands();
         Plugin.server.OnCommandReceived += HandleCommand;
     }
@@ -36,7 +38,7 @@ public class CommandHandler
         try
         {
             if (_commands.TryGetValue(command.ToLower(), out var cmd))
-                await Svc.Framework.Run(async () => await cmd.Execute(args));
+                await Svc.Framework.Run(async () => await cmd.Execute(args, plugin));
             else
             {
                 await CommandHelper.SendCommandResponse("Command not found. See 'help' for available commands",

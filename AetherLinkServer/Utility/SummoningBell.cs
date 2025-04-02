@@ -1,10 +1,10 @@
-/*using AetherLinkServer;
+using AetherLinkServer;
 using System.Numerics;
 using static AetherLinkServer.Data.Enums;
 
 namespace AetherLinkServer.Utility
 {
-    internal static class SummoningBellHelper
+    internal static class SummoningBell
     {
         internal static uint SummoningBellDataIds(uint territoryType)
         {
@@ -52,29 +52,8 @@ namespace AetherLinkServer.Utility
             };
         }
 
-        internal static void Invoke(SummoningBellLocations summoningBellLocation)
-        {
-            switch (Plugin.Configuration.PreferredSummoningBellEnum)
-            {
-                case SummoningBellLocations.Inn:
-                    GotoInnHelper.Invoke();
-                    break;
-                case SummoningBellLocations.Apartment:
-                    GotoHousingHelper.Invoke((Housing)SummoningBellLocations.Apartment);
-                    break;
-                case SummoningBellLocations.Personal_Home:
-                    GotoHousingHelper.Invoke((Housing)SummoningBellLocations.Personal_Home);
-                    break;
-                case SummoningBellLocations.FC_Estate:
-                    GotoHousingHelper.Invoke((Housing)SummoningBellLocations.FC_Estate);
-                    break;
-                default:
-                    GotoHelper.Invoke((uint)Plugin.Configuration.PreferredSummoningBellEnum, SummoningBellVector3s((uint)summoningBellLocation), 0.25f, 4);
-                    break;
-            }
-        }
     }
 }
-*/
+
 
 
