@@ -14,135 +14,88 @@ namespace AetherLinkServer.Services;
 public class WebSocketServer : IDisposable
 {
     public delegate Task CommandReceivedHandler(string command, string args);
-
-    private readonly CancellationTokenSource _cts = new();
-    private HttpListener _listener;
-    public WebSocket _webSocket;
+    
     private readonly Plugin plugin;
-
+    private ClientWebSocket client;
+    private CancellationTokenSource cts;
     public WebSocketServer(Plugin plugin)
     {
         this.plugin = plugin;
-        StartServer();
+        StartListener();
     }
 
     private IPluginLog Logger => Svc.Log;
 
     public void Dispose()
     {
-        _cts.Cancel(); // Cancel tasks
-        _ = Task.Run(async () =>
+        cts?.Cancel();
+        try
         {
-            if (_webSocket != null && _webSocket.State == WebSocketState.Open)
+            if (client?.State == WebSocketState.Open)
             {
-                await _webSocket.CloseAsync(
+                client.CloseAsync(
                     WebSocketCloseStatus.NormalClosure,
-                    "Plugin shutting down",
-                    CancellationToken.None
-                );
+                    "Plugin unloading",
+                    CancellationToken.None).Wait(1000); // Timeout to prevent hangs
             }
-        }).ContinueWith(t =>
+        }
+        finally
         {
-            _listener?.Stop();
-            _listener?.Close();
-            _cts.Dispose();
-        });
+            client?.Dispose();
+            client?.Dispose();
+        }
     }
-
     public event CommandReceivedHandler OnCommandReceived;
 
-    private async void StartServer()
+    private async void StartListener()
     {
+        client = new ClientWebSocket();
         try
         {
-            var ip = await PortForwarding.GetPublicIpAddress();
-            var result = await PortForwarding.EnableUpnpPortForwarding(plugin.Configuration.Port);
-            if (!result)
-            {
-                ip = "localhost";
-            }
-            _listener = new HttpListener();
-            _listener.Prefixes.Add($"http://{ip}:{plugin.Configuration.Port}/");
-            _listener.Start();
-            Logger.Debug($"WebSocket Server started on localhost:{plugin.Configuration.Port}");
-
-            while (!_cts.Token.IsCancellationRequested)
-                try
-                {
-                    var context = await _listener.GetContextAsync();
-                    if (context.Request.IsWebSocketRequest)
-                    {
-                        var wsContext = await context.AcceptWebSocketAsync(null);
-                        _webSocket = wsContext.WebSocket;
-                        Logger.Debug("WebSocket connection established");
-                        _ = Task.Run(() => ListenForCommands());
-                    }
-                }
-                catch (HttpListenerException ex) when (ex.ErrorCode == 995)
-                {
-                    Logger.Debug("HttpListener was stopped.");
-                    break;
-                }
-                catch (Exception ex)
-                {
-                    Logger.Error($"Unexpected error in StartServer: {ex}");
-                }
+            cts = new CancellationTokenSource();
+            await client.ConnectAsync(new Uri("ws://65.38.98.16:5000/ws"), cts.Token);
+            Logger.Debug("WebSocket client connected");
+            _ = ReceiveMessages();
         }
         catch (Exception ex)
         {
-            Logger.Error($"Failed to start WebSocket server: {ex}");
+            Logger.Error($"Failed to connect to WebSocket server: {ex}");
         }
     }
 
-    private async Task ListenForCommands()
+
+    private async Task ReceiveMessages()
     {
         var buffer = new byte[1024];
-        try
-        {
-            while (_webSocket?.State == WebSocketState.Open)
-            {
-                var result = await _webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), _cts.Token);
-                if (result.MessageType == WebSocketMessageType.Close)
-                {
-                    await _webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", CancellationToken.None);
-                    Logger.Debug("WebSocket connection closed");
-                    break;
-                }
 
-                var json = Encoding.UTF8.GetString(buffer, 0, result.Count);
-                try
-                {
-                    var message = JsonSerializer.Deserialize<WebSocketMessage<object>>(json);
-                    if (message != null)
-                    {
-                        Logger.Debug($"Received WebSocket message: {message.Type.ToString()} - {message.Data}");
-                        ProcessMessage(message);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Logger.Error($"Error deserializing WebSocket message: {ex.Message}");
-                }
+        while (client?.State == WebSocketState.Open)
+        {
+            WebSocketReceiveResult result = await client.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+            var json = Encoding.UTF8.GetString(buffer, 0, result.Count);
+
+            try
+            {
+                var command = JsonSerializer.Deserialize<WebSocketMessage<object>>(json);
+                
+                ProcessMessage(command);
+                                   
+            }catch(Exception ex)
+            {
+                Logger.Error($"Failed to deserialize message: {ex}");   
+                continue;
             }
-        }
-        catch (OperationCanceledException)
-        {
-            Logger.Error("WebSocket listener task cancelled.");
-        }
-        catch (Exception ex)
-        {
-            Logger.Error($"Error in WebSocket listener: {ex.Message}");
+
         }
     }
 
     public async Task SendMessage<T>(WebSocketMessage<T> webSocketMessage)
     {
-        if (_webSocket?.State == WebSocketState.Open)
+        if (client?.State == WebSocketState.Open)
         {
             var messageJson = JsonSerializer.Serialize(webSocketMessage);
             Logger.Verbose($"Sending message: {messageJson}");
             var messageBytes = Encoding.UTF8.GetBytes(messageJson);
-            await _webSocket.SendAsync(new ArraySegment<byte>(messageBytes), WebSocketMessageType.Text, true,
+            await client.SendAsync(new ArraySegment<byte>(messageBytes), WebSocketMessageType.Text, true,
                                        CancellationToken.None);
         }
     }

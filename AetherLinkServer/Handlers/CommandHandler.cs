@@ -30,7 +30,10 @@ public class CommandHandler
                                    .Where(t => typeof(ICommand).IsAssignableFrom(t) && !t.IsInterface && !t.IsAbstract);
         foreach (var type in commandTypes)
             if (Activator.CreateInstance(type) is ICommand command)
+            {
                 _commands[command.Name] = command;
+                Logger.Debug($"Command {command.Name} loaded");
+            }
     }
 
     private async Task HandleCommand(string command, string args)

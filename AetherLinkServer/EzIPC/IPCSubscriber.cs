@@ -20,6 +20,9 @@ internal static class AutoRetainer_IPCSubscriber
     internal static readonly Func<bool> IsBusy;
 
     [EzIPC]
+    internal static readonly Func<ulong ,long?> GetClosestRetainerVentureSecondsRemaining;
+
+    [EzIPC]
     internal static readonly Func<Dictionary<ulong, HashSet<string>>> GetEnabledRetainers;
 
     [EzIPC]

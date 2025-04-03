@@ -31,7 +31,7 @@ namespace AetherLinkServer.Utility
             };
         }
 
-        private static Vector3 SummoningBellVector3s(uint territoryType)
+        public static Vector3 SummoningBellVector3s(uint territoryType)
         {
             return territoryType switch
             {

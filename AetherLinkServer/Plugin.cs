@@ -1,14 +1,18 @@
-﻿using AetherLinkServer.DalamudServices;
+﻿using System;
+using AetherLinkServer.DalamudServices;
 using AetherLinkServer.Handlers;
 using AetherLinkServer.IPC;
 using AetherLinkServer.Services;
+using AetherLinkServer.Utility;
 using AetherLinkServer.Windows;
+using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Game.Command;
 using Dalamud.Interface.Windowing;
 using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using ECommons;
+using Serilog;
 
 namespace AetherLinkServer;
 
@@ -45,7 +49,7 @@ public sealed class Plugin : IDalamudPlugin
         PluginInterface.UiBuilder.Draw += DrawUI;
 
         //PluginInterface.UiBuilder.OpenConfigUi += ToggleConfigUI;
-
+        
         PluginInterface.UiBuilder.OpenMainUi += ToggleMainUI;
     }
 
@@ -61,6 +65,7 @@ public sealed class Plugin : IDalamudPlugin
 
     public void Dispose()
     {
+        ActionScheduler.Dispose();
         WindowSystem.RemoveAllWindows();
         server.Dispose();
         _chatHandler.Dispose();

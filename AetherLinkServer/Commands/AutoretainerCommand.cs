@@ -20,7 +20,7 @@ public class AutoretainerCommand : ICommand
         switch (args.ToLowerInvariant())
         {
             case "autobell enable":
-                plugin._autoRetainerHandler.Enable();
+                plugin._autoRetainerHandler.Invoke();
                 await CommandHelper.SendCommandResponse("Autoretainer autobell enabled",CommandResponseType.Success);
                 break;
         }
