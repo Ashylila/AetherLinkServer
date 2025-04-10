@@ -2,6 +2,7 @@ using System;
 using System.Text.Json;
 using System.Threading.Tasks;
 using AetherLinkServer.Models;
+using AetherLinkServer.Services;
 using ECommons.DalamudServices;
 using FFXIVClientStructs;
 
@@ -19,15 +20,15 @@ public static class CommandHelper
         return websocketcommand;
     }
 
-    public static async Task SendCommand<T>(T command, WebSocketActionType type)
+    public static async Task SendCommand<T>(this WebSocketServer server,T command, WebSocketActionType type)
     {
         var websocketcommand = CreateCommand(command, type);
         var json = JsonSerializer.Serialize(websocketcommand);
         
-        await Plugin.server.SendMessage(websocketcommand);
+        await server.SendMessage(websocketcommand);
     }
 
-    public static async Task SendCommandResponse(string message, CommandResponseType type)
+    public static async Task SendCommandResponse(this WebSocketServer server,string message, CommandResponseType type)
     {
         var commandResponse = new CommandResponse
         {
@@ -35,6 +36,6 @@ public static class CommandHelper
             Type = type
         };
         var command = CreateCommand(commandResponse, WebSocketActionType.CommandResponse);
-        await Plugin.server.SendMessage(command);
+        await server.SendMessage(command);
     }
 }

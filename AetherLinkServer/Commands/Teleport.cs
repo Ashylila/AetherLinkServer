@@ -2,38 +2,45 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using AetherLinkServer.DalamudServices;
+using AetherLinkServer.Handlers;
 using AetherLinkServer.Models;
+using AetherLinkServer.Services;
 using AetherLinkServer.Utility;
+using Dalamud.Plugin.Services;
 using Lumina.Excel.Sheets;
 
 namespace AetherLinkServer.Commands;
 
-public class TeleportCommand : ICommand
+public class TeleportCommand : CommandBase
 {
-    public string Name => "teleport";
-
-    public async Task Execute(string args, Plugin plugin)
+    private readonly IClientState _client;
+    public override string Name => "teleport";
+    public override string Description => "Teleport to a location using the AetherLink server.";
+    public TeleportCommand(IClientState client)
     {
-        if (Svc.ClientState.LocalPlayer == null)
+        _client = client ?? throw new ArgumentNullException(nameof(client));
+    }
+    public override async Task Execute(string args)
+    {
+        if (_client.LocalPlayer == null)
         {
-            await CommandHelper.SendCommandResponse("Player is busy or not in-game.", CommandResponseType.Error);
+            await SendCommandResponse("Player is busy or not in-game.", CommandResponseType.Error);
             return;
         }
-
+        
         var location = TeleportHelper.TryFindAetheryteByName(args, out var info, out var aetheryte);
         if (!location)
         {
-            await CommandHelper.SendCommandResponse("Location not found.", CommandResponseType.Error);
+            await SendCommandResponse("Location not found.", CommandResponseType.Error);
             return;
         }
-
         var result = TeleportHelper.Teleport(info.AetheryteId, info.SubIndex);
-        if (!result) await CommandHelper.SendCommandResponse("Failed to teleport.", CommandResponseType.Error);
-        //Chat.Instance.ExecuteCommand($"/tp {args}");
-        var name = Svc.Data.GetExcelSheet<Aetheryte>()
-                      .FirstOrDefault(t => t.PlaceName.Value.Name.ToString()
-                                            .Contains(args, StringComparison.OrdinalIgnoreCase)).PlaceName.Value.Name
-                      .ToString();
-        await CommandHelper.SendCommandResponse($"Teleporting to {aetheryte}...", CommandResponseType.Info);
+        if (!result)
+        {
+            await SendCommandResponse("Failed to teleport.", CommandResponseType.Error);
+            return;
+        }
+        
+        await SendCommandResponse($"Teleporting to {aetheryte}...", CommandResponseType.Success);
     }
 }

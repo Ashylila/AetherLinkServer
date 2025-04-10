@@ -5,5 +5,6 @@ namespace AetherLinkServer.Models;
 public interface ICommand
 {
     string Name { get; }
-    Task Execute(string args, Plugin plugin);
+    string Description { get; }
+    Task Execute(string args);
 }

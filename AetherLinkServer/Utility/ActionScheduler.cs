@@ -2,18 +2,20 @@ using System;
 using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
+using Dalamud.Plugin.Services;
 using ECommons.DalamudServices;
 
 namespace AetherLinkServer.Utility;
-public static class ActionScheduler
+public class ActionScheduler(IPluginLog log) : IDisposable
 {
-    private static readonly ConcurrentDictionary<string, (Action action, int delaySeconds, DateTime scheduledTime)> 
+    private readonly ConcurrentDictionary<string, (Action action, int delaySeconds, DateTime scheduledTime)> 
         _scheduledActions = new();
     
-    private static readonly ConcurrentDictionary<string, CancellationTokenSource> 
+    private readonly ConcurrentDictionary<string, CancellationTokenSource> 
         _cancellationTokens = new();
+    private readonly IPluginLog _log = log;
     
-    public static void Dispose()
+    public void Dispose()
     {
 
         try
@@ -45,16 +47,16 @@ public static class ActionScheduler
             
         }
     }
-    public static void ScheduleAction(string name, Action action, int delaySeconds)
+    public void ScheduleAction(string name, Action action, int delaySeconds)
     {
         // Cancel existing if already scheduled
         if (_cancellationTokens.TryRemove(name, out var existingCts))
         {
-            Svc.Log.Debug($"Action {name} has already been scheduled, replacing");
+            _log.Debug($"Action {name} has already been scheduled, replacing");
             existingCts.Cancel();
             existingCts.Dispose();
         }
-        Svc.Log.Debug($"Scheduling action {name} with delay {delaySeconds} seconds");
+        _log.Debug($"Scheduling action {name} with delay {delaySeconds} seconds");
         var cts = new CancellationTokenSource();
         _cancellationTokens[name] = cts;
         var scheduledTime = DateTime.UtcNow.AddSeconds(delaySeconds);
@@ -63,14 +65,14 @@ public static class ActionScheduler
         _ = RunScheduledAction(name, delaySeconds, cts.Token);
     }
 
-    private static async Task RunScheduledAction(string name, int delaySeconds, CancellationToken ct)
+    private async Task RunScheduledAction(string name, int delaySeconds, CancellationToken ct)
     {
         try
         {
             await Task.Delay(delaySeconds * 1000, ct);
             if (!ct.IsCancellationRequested && _scheduledActions.TryGetValue(name, out var actionInfo))
             {
-                Svc.Log.Debug($"Executing action {name}");
+                _log.Debug($"Executing action {name}");
                 actionInfo.action();
                 _scheduledActions.TryRemove(name, out _);
                 _cancellationTokens.TryRemove(name, out _);
@@ -82,14 +84,14 @@ public static class ActionScheduler
         }
     }
 
-    public static bool DelayAction(string name, int additionalDelaySeconds)
+    public bool DelayAction(string name, int additionalDelaySeconds)
     {
         if (!_scheduledActions.TryGetValue(name, out var actionInfo) ||
             !_cancellationTokens.TryGetValue(name, out var cts))
         {
             return false;
         }
-        Svc.Log.Debug($"Delaying action {name} by {additionalDelaySeconds} seconds");
+        _log.Debug($"Delaying action {name} by {additionalDelaySeconds} seconds");
         // Cancel current execution
         cts.Cancel();
         cts.Dispose();
@@ -108,11 +110,11 @@ public static class ActionScheduler
         return true;
     }
 
-    public static bool CancelAction(string name)
+    public bool CancelAction(string name)
     {
         if (_cancellationTokens.TryRemove(name, out var cts))
         {
-            Svc.Log.Debug($"Cancelling action {name}");
+            _log.Debug($"Cancelling action {name}");
             cts.Cancel();
             cts.Dispose();
             _scheduledActions.TryRemove(name, out _);
@@ -121,9 +123,9 @@ public static class ActionScheduler
         return false;
     }
 
-    public static void ClearAll()
+    public void ClearAll()
     {
-        Svc.Log.Debug("Clearing all scheduled actions");
+        _log.Debug("Clearing all scheduled actions");
         foreach (var cts in _cancellationTokens.Values)
         {
             cts.Cancel();
@@ -133,12 +135,12 @@ public static class ActionScheduler
         _scheduledActions.Clear();
     }
 
-    public static bool IsActionScheduled(string name)
+    public bool IsActionScheduled(string name)
     {
         return _scheduledActions.ContainsKey(name);
     }
 
-    public static double GetRemainingSeconds(string name)
+    public double GetRemainingSeconds(string name)
     {
         if (_scheduledActions.TryGetValue(name, out var scheduledItem))
         {

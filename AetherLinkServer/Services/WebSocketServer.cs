@@ -11,29 +11,24 @@ using Dalamud.Plugin.Services;
 
 namespace AetherLinkServer.Services;
 #nullable disable
-public class WebSocketServer : IDisposable
+public class WebSocketServer(Plugin plugin, ClientWebSocket socketClient, IPluginLog logger) : IDisposable
 {
     public delegate Task CommandReceivedHandler(string command, string args);
     
-    private readonly Plugin plugin;
-    private ClientWebSocket client;
+    private readonly Plugin _plugin = plugin;
+    private ClientWebSocket _client = socketClient;
     private CancellationTokenSource cts;
-    public WebSocketServer(Plugin plugin)
-    {
-        this.plugin = plugin;
-        StartListener();
-    }
 
-    private IPluginLog Logger => Svc.Log;
+    private IPluginLog _logger = logger;
 
     public void Dispose()
     {
         cts?.Cancel();
         try
         {
-            if (client?.State == WebSocketState.Open)
+            if (_client?.State == WebSocketState.Open)
             {
-                client.CloseAsync(
+                _client.CloseAsync(
                     WebSocketCloseStatus.NormalClosure,
                     "Plugin unloading",
                     CancellationToken.None).Wait(1000); // Timeout to prevent hangs
@@ -41,25 +36,29 @@ public class WebSocketServer : IDisposable
         }
         finally
         {
-            client?.Dispose();
-            client?.Dispose();
+            _client?.Dispose();
+            _client?.Dispose();
         }
     }
+    
     public event CommandReceivedHandler OnCommandReceived;
-
+    public void Start()
+    {
+        StartListener();
+    }
     private async void StartListener()
     {
-        client = new ClientWebSocket();
+        _client = new ClientWebSocket();
         try
         {
             cts = new CancellationTokenSource();
-            await client.ConnectAsync(new Uri("ws://65.38.98.16:5000/ws"), cts.Token);
-            Logger.Debug("WebSocket client connected");
+            await _client.ConnectAsync(new Uri("ws://65.38.98.16:5000/ws"), cts.Token);
+            _logger.Debug("WebSocket client connected");
             _ = ReceiveMessages();
         }
         catch (Exception ex)
         {
-            Logger.Error($"Failed to connect to WebSocket server: {ex}");
+            _logger.Error($"Failed to connect to WebSocket server: {ex}");
         }
     }
 
@@ -68,9 +67,9 @@ public class WebSocketServer : IDisposable
     {
         var buffer = new byte[1024];
 
-        while (client?.State == WebSocketState.Open)
+        while (_client?.State == WebSocketState.Open)
         {
-            WebSocketReceiveResult result = await client.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+            WebSocketReceiveResult result = await _client.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
             var json = Encoding.UTF8.GetString(buffer, 0, result.Count);
 
             try
@@ -81,7 +80,7 @@ public class WebSocketServer : IDisposable
                                    
             }catch(Exception ex)
             {
-                Logger.Error($"Failed to deserialize message: {ex}");   
+                _logger.Error($"Failed to deserialize message: {ex}");   
                 continue;
             }
 
@@ -90,19 +89,19 @@ public class WebSocketServer : IDisposable
 
     public async Task SendMessage<T>(WebSocketMessage<T> webSocketMessage)
     {
-        if (client?.State == WebSocketState.Open)
+        if (_client?.State == WebSocketState.Open)
         {
             var messageJson = JsonSerializer.Serialize(webSocketMessage);
-            Logger.Verbose($"Sending message: {messageJson}");
+            _logger.Verbose($"Sending message: {messageJson}");
             var messageBytes = Encoding.UTF8.GetBytes(messageJson);
-            await client.SendAsync(new ArraySegment<byte>(messageBytes), WebSocketMessageType.Text, true,
+            await _client.SendAsync(new ArraySegment<byte>(messageBytes), WebSocketMessageType.Text, true,
                                        CancellationToken.None);
         }
     }
 
     private void ProcessMessage(WebSocketMessage<object> message)
     {
-        if (message.Data is JsonElement data && data.ValueKind == JsonValueKind.String)
+        if (message.Data is JsonElement { ValueKind: JsonValueKind.String } data)
         {
             switch (message.Type)
             {
@@ -113,7 +112,7 @@ public class WebSocketServer : IDisposable
                     SendChatMessage(data.GetString());
                     break;
                 default:
-                    Logger.Error($"Unknown message type: {message.Type}");
+                    _logger.Error($"Unknown message type: {message.Type}");
                     break;
             }
         }

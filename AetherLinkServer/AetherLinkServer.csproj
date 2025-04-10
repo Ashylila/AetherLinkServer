@@ -8,10 +8,11 @@
         <IsPackable>false</IsPackable>
     </PropertyGroup>
     <ItemGroup>
-        <ProjectReference Include="..\ECommons\ECommons\ECommons.csproj"/>
+        <ProjectReference Include="..\ECommons\ECommons\ECommons.csproj" />
     </ItemGroup>
     <ItemGroup>
-        <PackageReference Include="Open.Nat" Version="2.1.0"/>
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.4" />
+        <PackageReference Include="Open.Nat" Version="2.1.0" />
     </ItemGroup>
 
 </Project>

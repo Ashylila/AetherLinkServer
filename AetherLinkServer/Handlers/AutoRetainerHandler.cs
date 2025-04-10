@@ -12,6 +12,7 @@ using Dalamud.Plugin.Services;
 using ECommons;
 using ECommons.Automation;
 using AetherLinkServer.DalamudServices;
+using Dalamud.Game.ClientState.Objects;
 using ECommons.GameHelpers;
 using ECommons.UIHelpers.AddonMasterImplementations;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
@@ -23,24 +24,34 @@ using FFXIVClientStructs.FFXIV.Component.GUI;
 
 namespace AetherLinkServer.Handlers;
 
-public class AutoRetainerHandler : IDisposable
+public class AutoRetainerHandler(Chat chat, ICondition condition, Plugin plugin, ActionScheduler scheduler, IFramework framework, IPluginLog Logger, IClientState state, ITargetManager target, IObjectTable objects) : IDisposable
 {
-    private IFramework Framework => Svc.Framework;
+    private readonly IFramework _framework = framework;
+    private readonly IPluginLog _logger = Logger;
+    private readonly IClientState _clientState = state;
+    private readonly ITargetManager _targetManager = target;
+    private readonly IObjectTable _objectTable = objects;
+    private readonly ICondition _condition = condition;
+    private readonly Chat _chat = chat;
+
+    private Plugin _plugin = plugin;
+    
+    private readonly ActionScheduler _actionScheduler = scheduler;
     public bool IsEnabled { get; private set; } = false;
     private bool _autoretainerEnabled = false;
 
     public long? ClosestRetainerVentureSecondsRemaining =>
-        AutoRetainer_IPCSubscriber.GetClosestRetainerVentureSecondsRemaining(Svc.ClientState.LocalContentId);
+        AutoRetainer_IPCSubscriber.GetClosestRetainerVentureSecondsRemaining(_clientState.LocalContentId);
     
     public void Dispose()
     {
         
     }
 
-    internal static unsafe void CloseRetainerWindows()
+    internal unsafe void CloseRetainerWindows()
     {
-        if (Svc.Targets.Target != null)
-            Svc.Targets.Target = null;
+        if (_targetManager.Target != null)
+            _targetManager.Target = null;
         else if (GenericHelpers.TryGetAddonByName("SelectYesno", out AtkUnitBase* addonSelectYesno))
             addonSelectYesno->Close(true);
         else if (GenericHelpers.TryGetAddonByName("SelectString", out AtkUnitBase* addonSelectString))
@@ -60,8 +71,8 @@ public class AutoRetainerHandler : IDisposable
         if (!IsEnabled)
         {
             IsEnabled = true;
-            Svc.Log.Debug("Enabling");
-            Framework.Update += HandleAutoretainer;
+            _logger.Debug("Enabling");
+            _framework.Update += HandleAutoretainer;
         }
     }
 
@@ -69,69 +80,69 @@ public class AutoRetainerHandler : IDisposable
     {
         if (!AutoRetainer_IPCSubscriber.IsEnabled)
         {
-            Svc.Log.Info("AutoRetainer requires a plugin, visit https://puni.sh/plugin/AutoRetainer for more info");
+            _logger.Info("AutoRetainer requires a plugin, visit https://puni.sh/plugin/AutoRetainer for more info");
             return;
         }
         if (ClosestRetainerVentureSecondsRemaining is not null && ClosestRetainerVentureSecondsRemaining > 0)
         {
-            ActionScheduler.ScheduleAction("InvokeAutoretainer", Enable, (int)ClosestRetainerVentureSecondsRemaining);
+            _actionScheduler.ScheduleAction("InvokeAutoretainer", Enable, (int)ClosestRetainerVentureSecondsRemaining);
         }
         else if (ClosestRetainerVentureSecondsRemaining is not null && ClosestRetainerVentureSecondsRemaining <= 0)
         {
             Enable();
-            ActionScheduler.CancelAction("InvokeAutoretainer");
+            _actionScheduler.CancelAction("InvokeAutoretainer");
         }
     }
-    private IGameObject? summoningBell => Svc.Objects.FirstOrDefault(o => o.DataId == SummoningBell.SummoningBellDataIds(628));
+    private IGameObject? summoningBell => _objectTable.FirstOrDefault(o => o.DataId == SummoningBell.SummoningBellDataIds(628));
     private unsafe void HandleAutoretainer(IFramework framework)
     {
         if (!IsEnabled) return;
         if (!_autoretainerEnabled && !AutoRetainer_IPCSubscriber.IsBusy())
         {
-            Svc.Log.Debug("AutoRetainer enabled");
+            _logger.Debug("AutoRetainer enabled");
             _autoretainerEnabled = true;
         }
         if (_autoretainerEnabled && !AutoRetainer_IPCSubscriber.IsBusy() && !AutoRetainer_IPCSubscriber.AreAnyRetainersAvailableForCurrentChara())
         {
             _autoretainerEnabled = false;
-            Svc.Log.Info("AutoRetainer finished");
+            _logger.Info("AutoRetainer finished");
             Stop();
             return;
         }
-        if (Svc.ClientState.LocalPlayer == null) return;
+        if (_clientState.LocalPlayer == null) return;
         //TODO: Make Teleporting and Summoning bell selection Dynamic
-        if (Player.Territory != 628 && PlayerHelper.state != Enums.ActionState.Teleporting)
+        if (Player.Territory != 628 && _plugin.state != Enums.ActionState.Teleporting)
         {
             var Location = TeleportHelper.TryFindAetheryteByName("Kugane", out var kugane, out var name);
             TeleportHelper.Teleport(kugane.AetheryteId, kugane.SubIndex);
-            Svc.Log.Debug("Teleporting...");
-            PlayerHelper.state = Enums.ActionState.Teleporting;
+            _logger.Debug("Teleporting...");
+            _plugin.state = Enums.ActionState.Teleporting;
         }
-        if (Player.Territory == 628 && PlayerHelper.state != Enums.ActionState.Running)
+        if (Player.Territory == 628 && _plugin.state != Enums.ActionState.Running)
         {
-            Svc.Log.Debug("Player is:" + Player.IsBusy.ToString());
+            _logger.Debug("Player is:" + Player.IsBusy.ToString());
             if (!Player.IsBusy)
             {
                 PlayerMovement.Move(SummoningBell.SummoningBellVector3s(628));
-                Svc.Log.Debug("Moving to summoning bell..");
-                PlayerHelper.state = Enums.ActionState.Running;
+                _logger.Debug("Moving to summoning bell..");
+                _plugin.state = Enums.ActionState.Running;
             }
         }
         else if (PlayerHelper.GetDistanceToPlayer(SummoningBell.SummoningBellVector3s(628)) <= 4 && _autoretainerEnabled && summoningBell != null)
         {
-            if (!Svc.Condition[ConditionFlag.OccupiedSummoningBell])
+            if (!_condition[ConditionFlag.OccupiedSummoningBell])
             {
                 if (VNavmesh_IPCSubscriber.Path_IsRunning())
                     VNavmesh_IPCSubscriber.Path_Stop();
-                Svc.Log.Debug("Waiting for AutoRetainer to Start");
-                Chat.Instance.ExecuteCommand("/autoretainer e");
-                Svc.Targets.Target = summoningBell;
+                _logger.Debug("Waiting for AutoRetainer to Start");
+                _chat.ExecuteCommand("/autoretainer e");
+                _targetManager.Target = summoningBell;
                 TargetSystem.Instance()->OpenObjectInteraction(TargetSystem.Instance()->Target);
                 
             }
             else
             {
-                Svc.Log.Debug("Interacting with bell");
+                _logger.Debug("Interacting with bell");
             }
 
         }
@@ -139,24 +150,25 @@ public class AutoRetainerHandler : IDisposable
 
     private void HandleAutoretainerStop(IFramework framework)
     {
-        if (!Svc.Condition[ConditionFlag.OccupiedSummoningBell])
+        if (!_condition[ConditionFlag.OccupiedSummoningBell])
         {
             PlayerHelper.state = Enums.ActionState.None;
-            Framework.Update -= HandleAutoretainerStop;
+            _framework.Update -= HandleAutoretainerStop;
             Invoke();
             
         }
         else
         {
+            _logger.Debug("Closing windows");
             CloseRetainerWindows();
         }
     }
 
     private void Stop()
     {
-        Svc.Log.Debug("AutoRetainer finished");
-        Svc.Framework.Update -= HandleAutoretainer;
-        Svc.Framework.Update += HandleAutoretainerStop;
+        _logger.Debug("AutoRetainer finished");
+        _framework.Update -= HandleAutoretainer;
+        _framework.Update += HandleAutoretainerStop;
     }
     
     

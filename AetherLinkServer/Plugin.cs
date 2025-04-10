@@ -1,5 +1,6 @@
 ﻿using System;
 using AetherLinkServer.DalamudServices;
+using AetherLinkServer.Data;
 using AetherLinkServer.Handlers;
 using AetherLinkServer.IPC;
 using AetherLinkServer.Services;
@@ -19,24 +20,17 @@ namespace AetherLinkServer;
 #nullable disable
 public sealed class Plugin : IDalamudPlugin
 {
+    
+    public Enums.ActionState state = Enums.ActionState.None;
     private const string CommandName = "/aetherlinkserver";
-    private readonly ChatHandler _chatHandler;
-    private readonly CommandHandler _commandHandler;
-    public readonly AutoRetainerHandler _autoRetainerHandler;
     public readonly WindowSystem WindowSystem = new("AetherLinkServer");
 
     public Plugin()
     {
         ECommonsMain.Init(PluginInterface, this, Module.DalamudReflector);
-        Svc.Init(PluginInterface);
+        ServiceWrapper.Initialize(this, PluginInterface);
         Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
         MainWindow = new MainWindow(this);
-        
-        _autoRetainerHandler = new();
-        server = new WebSocketServer(this);
-        _commandHandler = new CommandHandler(this);
-        
-        _chatHandler = new ChatHandler(this);
         
 
         WindowSystem.AddWindow(MainWindow);
@@ -65,10 +59,12 @@ public sealed class Plugin : IDalamudPlugin
 
     public void Dispose()
     {
-        ActionScheduler.Dispose();
+        if (ServiceWrapper.ServiceProvider is IDisposable disposable)
+        {
+            disposable.Dispose();
+        }
         WindowSystem.RemoveAllWindows();
         server.Dispose();
-        _chatHandler.Dispose();
         MainWindow.Dispose();
         CommandManager.RemoveHandler(CommandName);
         ECommonsMain.Dispose();

@@ -7,7 +7,7 @@ using Open.Nat;
 
 namespace AetherLinkServer.Services;
 
-public class PortForwarding
+public static class PortForwarding
 {
     public static async Task<bool> EnableUpnpPortForwarding(int port)
     {

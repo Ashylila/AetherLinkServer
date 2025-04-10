@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using AetherLinkServer.DalamudServices;
 using AetherLinkServer.Models;
+using AetherLinkServer.Services;
 using AetherLinkServer.Utility;
 using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
@@ -12,15 +13,19 @@ namespace AetherLinkServer.Handlers;
 public class ChatHandler : IDisposable
 {
     private Plugin plugin;
+    private readonly WebSocketServer _server;
+    private readonly IPluginLog _logger;
+    private readonly IChatGui _chatGui;
 
-    public ChatHandler(Plugin plugin)
+    public ChatHandler(Plugin plugin, WebSocketServer server, IChatGui chatGui, IPluginLog logger)
     {
+        _chatGui = chatGui;
+        _logger = logger;
+        _server = server;
         this.plugin = plugin;
         _chatGui.ChatMessage += OnChatMessageReceived;
     }
-
-    private IChatGui _chatGui => Svc.Chat;
-    private IPluginLog Logger => Svc.Log;
+    
 
     public void Dispose()
     {
@@ -38,7 +43,7 @@ public class ChatHandler : IDisposable
             Timestamp = DateTime.Now,
             Message = message.TextValue
         };
-        Logger.Debug($"Chat message received: {chatMessage.Sender}: {chatMessage.Message}");
-        _ = Task.Run(() => CommandHelper.SendCommand(chatMessage, WebSocketActionType.ChatMessage));
+        _logger.Debug($"Chat message received: {chatMessage.Sender}: {chatMessage.Message}");
+        _ = Task.Run(() => _server.SendCommand(chatMessage, WebSocketActionType.ChatMessage));
     }
 }

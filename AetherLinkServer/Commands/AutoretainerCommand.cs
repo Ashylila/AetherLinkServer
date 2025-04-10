@@ -1,27 +1,35 @@
 using System.Threading.Tasks;
 using AetherLinkServer.Handlers;
 using AetherLinkServer.Models;
+using AetherLinkServer.Services;
 using AetherLinkServer.Utility;
 
 namespace AetherLinkServer.Commands;
 
-public class AutoretainerCommand : ICommand
+public class AutoretainerCommand : CommandBase
 {
-    public string Name => "autoretainer";
+    private readonly AutoRetainerHandler _autoRetainerHandler;
+    public override string Name => "autoretainer";
+    public override string Description => "Autoretainer management";
 
-    public async Task Execute(string args,  Plugin plugin)
+    public AutoretainerCommand(AutoRetainerHandler aRHandler)
+    {
+        _autoRetainerHandler = aRHandler;
+    }
+    public override async Task Execute(string args)
     {
         if (args == string.Empty)
         {
-            var error = "No arguments provided for command Autoretainer. See 'autoretainer help' for more information.";
-            await CommandHelper.SendCommandResponse(error, CommandResponseType.Warning);
+            await SendCommandResponse("No arguments provided for command Autoretainer. See 'autoretainer help' for more information.",
+                                      CommandResponseType.Warning);
         }
 
         switch (args.ToLowerInvariant())
         {
             case "autobell enable":
-                plugin._autoRetainerHandler.Invoke();
-                await CommandHelper.SendCommandResponse("Autoretainer autobell enabled",CommandResponseType.Success);
+                _autoRetainerHandler.Invoke();
+                await SendCommandResponse("Autoretainer autobell enabled", 
+                                          CommandResponseType.Success);
                 break;
         }
     }
