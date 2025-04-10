@@ -5,5 +5,6 @@ public enum CommandResponseType
     Error,
     Info,
     Success,
-    Warning
+    Warning,
+    InvalidCommandUsage
 }

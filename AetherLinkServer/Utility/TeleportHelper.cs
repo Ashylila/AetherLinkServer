@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using AetherLinkServer.DalamudServices;
+using AetherLinkServer.Services;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using Lumina.Excel.Sheets;
@@ -9,7 +10,7 @@ namespace AetherLinkServer.Utility;
 
 public static class TeleportHelper
 {
-    private static IPluginLog Logger => Svc.Log;
+    private static IPluginLog Logger = ServiceWrapper.Get<IPluginLog>();
 
     public static unsafe bool TryFindAetheryteByName(string name, out TeleportInfo info, out string aetherName)
     {
@@ -22,10 +23,10 @@ public static class TeleportHelper
             var tpInfos = tp->TeleportList;
             foreach (var tpInfo in tpInfos)
             {
-                var aetheryteName = Svc.Data.GetExcelSheet<Aetheryte>()
+                var aetheryteName = ServiceWrapper.Get<IDataManager>().GetExcelSheet<Aetheryte>()
                                        .FirstOrDefault(x => x.RowId == tpInfo.AetheryteId).PlaceName.ValueNullable?.Name
                                        .ToString();
-
+                
                 var result = aetheryteName.Contains(name, StringComparison.OrdinalIgnoreCase);
                 if (!result && !aetheryteName.Equals(name, StringComparison.OrdinalIgnoreCase))
                     continue;

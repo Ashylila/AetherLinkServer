@@ -1,6 +1,7 @@
 using AetherLinkServer.DalamudServices;
 using AetherLinkServer.Models;
 using System.Threading.Tasks;
+using AetherLinkServer.Attributes;
 using AetherLinkServer.Handlers;
 using AetherLinkServer.Services;
 using AetherLinkServer.Utility;
@@ -12,14 +13,12 @@ namespace AetherLinkServer.Commands;
 public class GetCurrentTargetCommand : CommandBase
 {
     private readonly ITargetManager _target;
-    public string Name => "getcurrenttarget";
-    public string Description => "Get the current target's name and ID";
-    
     public GetCurrentTargetCommand(ITargetManager target)
     {
         _target = target;
     }
-    public override async Task Execute(string args)
+    [Command("getcurrenttarget", "Get the current target's name and ID")]
+    public async Task Execute(string args)
     {
         var target = _target.Target;
         if (target == null)

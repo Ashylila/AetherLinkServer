@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using AetherLinkServer.Attributes;
 using AetherLinkServer.Handlers;
 using AetherLinkServer.Models;
 using AetherLinkServer.Services;
@@ -9,14 +10,13 @@ namespace AetherLinkServer.Commands;
 public class AutoretainerCommand : CommandBase
 {
     private readonly AutoRetainerHandler _autoRetainerHandler;
-    public string Name => "autoretainer";
-    public string Description => "Autoretainer management";
-
+    
+    [Command("autoretainer", "Autoretainer management")]
     public AutoretainerCommand(AutoRetainerHandler aRHandler)
     {
         _autoRetainerHandler = aRHandler;
     }
-    public override async Task Execute(string args)
+    public async Task Execute(string args)
     {
         if (args == string.Empty)
         {

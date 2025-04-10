@@ -27,11 +27,13 @@ public sealed class Plugin : IDalamudPlugin
 
     public Plugin()
     {
+        Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
         ECommonsMain.Init(PluginInterface, this, Module.DalamudReflector);
         ServiceWrapper.Initialize(this, PluginInterface);
-        Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
-        MainWindow = new MainWindow(this);
+        MainWindow = ServiceWrapper.Get<MainWindow>();
         
+        ServiceWrapper.Get<WebSocketServer>().Start();
+        ServiceWrapper.Get<CommandHandler>().Initialize();
 
         WindowSystem.AddWindow(MainWindow);
 
@@ -52,8 +54,7 @@ public sealed class Plugin : IDalamudPlugin
 
     [PluginService]
     internal static ICommandManager CommandManager { get; private set; } = null!;
-
-    public static WebSocketServer server { get; set; }
+    
     public Configuration Configuration { get; init; }
     private MainWindow MainWindow { get; init; }
 
@@ -62,9 +63,9 @@ public sealed class Plugin : IDalamudPlugin
         if (ServiceWrapper.ServiceProvider is IDisposable disposable)
         {
             disposable.Dispose();
+            ServiceWrapper.ServiceProvider = null!;
         }
         WindowSystem.RemoveAllWindows();
-        server.Dispose();
         MainWindow.Dispose();
         CommandManager.RemoveHandler(CommandName);
         ECommonsMain.Dispose();
@@ -73,7 +74,6 @@ public sealed class Plugin : IDalamudPlugin
     private void OnCommand(string command, string args)
     {
         ToggleMainUI();
-        var random = AutoRetainer_IPCSubscriber.IsBusy();
     }
 
     private void DrawUI()

@@ -26,17 +26,17 @@ namespace AetherLinkServer.Handlers;
 
 public class AutoRetainerHandler(Chat chat, ICondition condition, Plugin plugin, ActionScheduler scheduler, IFramework framework, IPluginLog Logger, IClientState state, ITargetManager target, IObjectTable objects) : IDisposable
 {
-    private readonly IFramework _framework = framework;
-    private readonly IPluginLog _logger = Logger;
-    private readonly IClientState _clientState = state;
-    private readonly ITargetManager _targetManager = target;
-    private readonly IObjectTable _objectTable = objects;
-    private readonly ICondition _condition = condition;
-    private readonly Chat _chat = chat;
+    private IFramework _framework => framework;
+    private IPluginLog _logger = Logger;
+    private IClientState _clientState = state;
+    private ITargetManager _targetManager = target;
+    private IObjectTable _objectTable = objects;
+    private ICondition _condition = condition;
+    private Chat _chat = chat;
 
     private Plugin _plugin = plugin;
     
-    private readonly ActionScheduler _actionScheduler = scheduler;
+    private ActionScheduler _actionScheduler = scheduler;
     public bool IsEnabled { get; private set; } = false;
     private bool _autoretainerEnabled = false;
 

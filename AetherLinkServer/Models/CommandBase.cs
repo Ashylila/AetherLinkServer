@@ -20,5 +20,4 @@ public abstract class CommandBase
     {
         await Context.Server.SendCommandResponse(response, responseType);
     }
-    public abstract Task Execute(string args);
 }

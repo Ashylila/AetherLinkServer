@@ -123,6 +123,7 @@ public class WebSocketServer(Plugin plugin, ClientWebSocket socketClient, IPlugi
         var parts = command.Split(' ');
         var cmd = parts[0];
         var args = string.Join(' ', parts[1..]);
+        _logger.Debug($"Command received: {cmd} with args: {args}");
         OnCommandReceived?.Invoke(cmd, args);
     }
 

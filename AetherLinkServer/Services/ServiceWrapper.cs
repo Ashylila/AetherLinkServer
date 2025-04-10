@@ -32,6 +32,7 @@ public static class ServiceWrapper
         _serviceCollection.AddSingleton(Svc.GameGui);
         _serviceCollection.AddSingleton(Svc.Targets);
         _serviceCollection.AddSingleton(Svc.ClientState);
+        _serviceCollection.AddSingleton(Svc.Objects);
         
         _serviceCollection.AddSingleton(plugin);
         _serviceCollection.AddSingleton(plugin.Configuration);
@@ -46,9 +47,9 @@ public static class ServiceWrapper
         _serviceCollection.AddSingleton<ActionScheduler>();
         _serviceCollection.AddSingleton<AutoRetainerHandler>();
 
-        _serviceCollection.AddSingleton<CommandBase, AutoretainerCommand>();
-        _serviceCollection.AddSingleton<CommandBase, TeleportCommand>();
-        _serviceCollection.AddSingleton<CommandBase, GetCurrentTargetCommand>();
+        _serviceCollection.AddSingleton<AutoretainerCommand>();
+        _serviceCollection.AddSingleton<TeleportCommand>();
+        _serviceCollection.AddSingleton<GetCurrentTargetCommand>();
         
         _serviceCollection.AddSingleton<MainWindow>();
         
