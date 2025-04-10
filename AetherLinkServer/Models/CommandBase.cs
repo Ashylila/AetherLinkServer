@@ -1,3 +1,4 @@
+using System.Threading;
 using System.Threading.Tasks;
 using AetherLinkServer.Models;
 using AetherLinkServer.Services;
@@ -5,12 +6,10 @@ using AetherLinkServer.Utility;
 
 namespace AetherLinkServer.Handlers;
 
-public abstract class CommandBase : ICommand
+public abstract class CommandBase
 {
-    public abstract string Name { get; }
-    public abstract string Description { get; }
-    
     public CommandContext Context { get; private set; } = null!;
+    
     
     internal void SetContext(CommandContext context)
     {

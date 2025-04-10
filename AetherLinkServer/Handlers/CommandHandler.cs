@@ -44,7 +44,8 @@ public class CommandHandler
                     command.SetContext(new CommandContext()
                     {
                         Server = _server,
-                        CommandName = command.Name
+                        CommandName = command.Name,
+                        Description = command.Description
                     });
                     _commands[command.Name.ToLower()] = command;
                     _logger.Debug($"Command {command.Name} loaded");
@@ -84,4 +85,5 @@ public class CommandHandler
         }
     }
 }
+//TODO: Implement command attribute
 

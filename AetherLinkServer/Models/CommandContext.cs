@@ -10,7 +10,7 @@ public class CommandContext
     public required WebSocketServer Server { get; init; } 
     
     public string? CommandName { get; init; }
-    public string? Args { get; init; }
+    public string? Description { get; init; }
     
     public async Task SendCommandResponse(string message, CommandResponseType type)
     {

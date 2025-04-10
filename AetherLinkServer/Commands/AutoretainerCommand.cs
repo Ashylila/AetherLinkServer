@@ -9,8 +9,8 @@ namespace AetherLinkServer.Commands;
 public class AutoretainerCommand : CommandBase
 {
     private readonly AutoRetainerHandler _autoRetainerHandler;
-    public override string Name => "autoretainer";
-    public override string Description => "Autoretainer management";
+    public string Name => "autoretainer";
+    public string Description => "Autoretainer management";
 
     public AutoretainerCommand(AutoRetainerHandler aRHandler)
     {

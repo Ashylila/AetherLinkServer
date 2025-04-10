@@ -12,8 +12,8 @@ namespace AetherLinkServer.Commands;
 public class GetCurrentTargetCommand : CommandBase
 {
     private readonly ITargetManager _target;
-    public override string Name => "getcurrenttarget";
-    public override string Description => "Get the current target's name and ID";
+    public string Name => "getcurrenttarget";
+    public string Description => "Get the current target's name and ID";
     
     public GetCurrentTargetCommand(ITargetManager target)
     {
