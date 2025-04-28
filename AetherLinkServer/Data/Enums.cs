@@ -12,9 +12,11 @@ public static class Enums
 {
     public enum ActionState
     {
-        None = 0,
-        Running = 1,
-        Teleporting = 2
+        None,
+        Running,
+        Teleporting,
+        MovingToBell,
+        InteractingWithBell,
     }
 
     [Flags]

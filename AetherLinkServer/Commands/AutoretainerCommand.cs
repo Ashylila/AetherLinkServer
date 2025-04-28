@@ -11,11 +11,11 @@ public class AutoretainerCommand : CommandBase
 {
     private readonly AutoRetainerHandler _autoRetainerHandler;
     
-    [Command("autoretainer", "Autoretainer management")]
     public AutoretainerCommand(AutoRetainerHandler aRHandler)
     {
         _autoRetainerHandler = aRHandler;
     }
+    [Command("autoretainer", "Autoretainer management")]
     public async Task Execute(string args)
     {
         if (args == string.Empty)

@@ -33,6 +33,7 @@ public static class ServiceWrapper
         _serviceCollection.AddSingleton(Svc.Targets);
         _serviceCollection.AddSingleton(Svc.ClientState);
         _serviceCollection.AddSingleton(Svc.Objects);
+        _serviceCollection.AddSingleton(Svc.Data);
         
         _serviceCollection.AddSingleton(plugin);
         _serviceCollection.AddSingleton(plugin.Configuration);
@@ -52,6 +53,8 @@ public static class ServiceWrapper
         _serviceCollection.AddSingleton<GetCurrentTargetCommand>();
         
         _serviceCollection.AddSingleton<MainWindow>();
+        
+        _serviceCollection.AddSingleton<TaskManager>();
         
         ServiceProvider = _serviceCollection.BuildServiceProvider();
         

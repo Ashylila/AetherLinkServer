@@ -34,6 +34,7 @@ public sealed class Plugin : IDalamudPlugin
         
         ServiceWrapper.Get<WebSocketServer>().Start();
         ServiceWrapper.Get<CommandHandler>().Initialize();
+        ServiceWrapper.Get<ChatHandler>().Init();
 
         WindowSystem.AddWindow(MainWindow);
 

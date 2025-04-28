@@ -7,17 +7,21 @@ using System.Threading;
 using System.Threading.Tasks;
 using AetherLinkServer.DalamudServices;
 using AetherLinkServer.Models;
+using Dalamud.Game.Text;
 using Dalamud.Plugin.Services;
+using ECommons.Automation;
 
 namespace AetherLinkServer.Services;
 #nullable disable
-public class WebSocketServer(Plugin plugin, ClientWebSocket socketClient, IPluginLog logger) : IDisposable
+public class WebSocketServer(Plugin plugin, ClientWebSocket socketClient, IPluginLog logger, Configuration config, IFramework framework) : IDisposable
 {
     public delegate Task CommandReceivedHandler(string command, string args);
     
+    private readonly Configuration _config = config;
     private readonly Plugin _plugin = plugin;
     private ClientWebSocket _client = socketClient;
     private CancellationTokenSource cts;
+    private readonly IFramework _framework = framework;
 
     private IPluginLog _logger = logger;
 
@@ -51,6 +55,8 @@ public class WebSocketServer(Plugin plugin, ClientWebSocket socketClient, IPlugi
         _client = new ClientWebSocket();
         try
         {
+            var result = await PortForwarding.EnableUpnpPortForwarding(_config.Port);
+            _logger.Debug(result.ToString());
             cts = new CancellationTokenSource();
             await _client.ConnectAsync(new Uri("ws://65.38.98.16:5000/ws"), cts.Token);
             _logger.Debug("WebSocket client connected");
@@ -101,7 +107,8 @@ public class WebSocketServer(Plugin plugin, ClientWebSocket socketClient, IPlugi
 
     private void ProcessMessage(WebSocketMessage<object> message)
     {
-        if (message.Data is JsonElement { ValueKind: JsonValueKind.String } data)
+        _logger.Debug("message received: " + message.Type);
+        if (message.Data is JsonElement data)
         {
             switch (message.Type)
             {
@@ -109,7 +116,7 @@ public class WebSocketServer(Plugin plugin, ClientWebSocket socketClient, IPlugi
                     ProcessCommand(data.GetString());
                     break;
                 case WebSocketActionType.SendChatMessage:
-                    SendChatMessage(data.GetString());
+                    SendChatMessage(JsonSerializer.Deserialize<ChatMessage>(data));
                     break;
                 default:
                     _logger.Error($"Unknown message type: {message.Type}");
@@ -127,8 +134,16 @@ public class WebSocketServer(Plugin plugin, ClientWebSocket socketClient, IPlugi
         OnCommandReceived?.Invoke(cmd, args);
     }
 
-    private void SendChatMessage(string message)
+    private void SendChatMessage(ChatMessage message)
     {
-        throw new NotImplementedException();
+        if (message.Type == XivChatType.TellOutgoing)
+        {
+            _framework.Run((() => Chat.Instance.SendMessage($"/tell {message.Sender} {message.Message}")));
+        }
+        else
+        {
+            _framework.Run(
+                (() => Chat.Instance.SendMessage($"/{message.Type.ToString().ToLower()} {message.Message}")));
+        }
     }
 }

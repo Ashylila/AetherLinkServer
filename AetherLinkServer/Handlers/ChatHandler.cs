@@ -23,10 +23,12 @@ public class ChatHandler : IDisposable
         _logger = logger;
         _server = server;
         this.plugin = plugin;
+    }
+
+    public void Init()
+    {
         _chatGui.ChatMessage += OnChatMessageReceived;
     }
-    
-
     public void Dispose()
     {
         _chatGui.ChatMessage -= OnChatMessageReceived;

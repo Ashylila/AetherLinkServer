@@ -73,7 +73,7 @@ public class CommandHandler
 
                         return (Task)method.Invoke(instance, new object[] { args })!;
                     };
-                    
+                    _logger.Debug(attr.Name.ToLower());
                     _commands[attr.Name.ToLower()] = del;
                 }
                 
