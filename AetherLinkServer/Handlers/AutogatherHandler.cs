@@ -14,10 +14,10 @@ public class AutogatherHandler : HandlerBase, IDisposable
     public override string[] AddonsToClose => new string[0];
     public override bool CanBeInterrupted => true;
 
-    public AutogatherHandler(IPluginLog logger, TaskManager taskManager, HandlerManager handlerManager)
+    public AutogatherHandler(IPluginLog logger, TaskManager taskManager, HandlerManager handlerManager, Plugin plugin)
         : base(logger, taskManager, handlerManager)
     {
-
+        _plugin = plugin;
     }
 
     public bool Invoke()
@@ -28,7 +28,7 @@ public class AutogatherHandler : HandlerBase, IDisposable
             Logger.Info("AutoRetainer requires the AutoRetainer plugin. Visit  for more info.");
             return false;
         }
-        base.Enable();
+        Enable();
         return true;
     }
 
@@ -62,6 +62,6 @@ public class AutogatherHandler : HandlerBase, IDisposable
 
     public void Dispose()
     {
-        
+        TaskManager.Abort();
     }
 }

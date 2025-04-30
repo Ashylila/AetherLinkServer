@@ -18,10 +18,10 @@ public sealed class HandlerManager
         _handlers.Remove(handler);
     }
 
-    public bool TryInterruptRunningHandlers()
+    public (bool result, string reason) TryInterruptRunningHandlers()
     {
         if(_handlers.Any(h => (h.IsEnabled && !h.CanBeInterrupted)))
-            return false;
+            return (false, $"{_handlers.First(h => h.IsEnabled && !h.CanBeInterrupted).HandlerName} cant be interrupted.");
         foreach (var handler in _handlers)
         {
 
@@ -30,7 +30,7 @@ public sealed class HandlerManager
                 handler.Disable();
             }
         }
-        return true;
+        return (true, "Handlers successfully interrupted");
     }
 
     public IEnumerable<HandlerBase> GetRunningHandlers()

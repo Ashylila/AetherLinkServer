@@ -82,12 +82,13 @@ public sealed class AutoRetainerHandler : HandlerBase, IDisposable
             Logger.Debug($"Scheduling AutoRetainer in {secondsRemaining} seconds...");
             _actionScheduler.ScheduleAction(nameof(Enable), ()=>TaskManager.Enqueue(() =>
             {
-                if (HandlerManager.TryInterruptRunningHandlers())
+                var result = HandlerManager.TryInterruptRunningHandlers();
+                if (result.result)
                 {
                     Enable();
                     return true;
                 }
-
+                Logger.Debug($"{result.reason}");   
                 return false;
             },nameof(Enable)), (int)secondsRemaining);
         }
@@ -95,12 +96,13 @@ public sealed class AutoRetainerHandler : HandlerBase, IDisposable
         {
             TaskManager.Enqueue(() =>
             {
-                if (HandlerManager.TryInterruptRunningHandlers())
+                var result = HandlerManager.TryInterruptRunningHandlers();
+                if (result.result)
                 {
                     Enable();
                     return true;
                 }
-
+                Logger.Debug($"{result.reason}");
                 return false;
             },nameof(Enable));
             _actionScheduler.CancelAction(nameof(Enable));

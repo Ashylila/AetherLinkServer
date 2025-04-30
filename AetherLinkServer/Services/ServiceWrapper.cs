@@ -55,10 +55,10 @@ public static class ServiceWrapper
         services.AddSingleton<HandlerManager>();
 
         
-        services.AddTransient<AutoRetainerHandler>();
-        services.AddTransient<HandlerBase>(dp => dp.GetRequiredService<AutoRetainerHandler>());
-        services.AddTransient<AutogatherHandler>();
-        services.AddTransient<HandlerBase>(dp => dp.GetRequiredService<AutogatherHandler>());
+        services.AddSingleton<AutoRetainerHandler>();
+        services.AddSingleton<HandlerBase>(dp => dp.GetRequiredService<AutoRetainerHandler>());
+        services.AddSingleton<AutogatherHandler>();
+        services.AddSingleton<HandlerBase>(dp => dp.GetRequiredService<AutogatherHandler>());
 
         
         services.AddSingleton<AutoretainerCommand>();
