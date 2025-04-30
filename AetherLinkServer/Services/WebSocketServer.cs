@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Net;
 using System.Net.WebSockets;
 using System.Text;
@@ -10,10 +11,11 @@ using AetherLinkServer.Models;
 using Dalamud.Game.Text;
 using Dalamud.Plugin.Services;
 using ECommons.Automation;
+using Lumina.Excel.Sheets;
 
 namespace AetherLinkServer.Services;
 #nullable disable
-public class WebSocketServer(Plugin plugin, ClientWebSocket socketClient, IPluginLog logger, Configuration config, IFramework framework) : IDisposable
+public class WebSocketServer(Plugin plugin, ClientWebSocket socketClient, IPluginLog logger, Configuration config, IFramework framework, IDataManager data, IClientState clientState) : IDisposable
 {
     public delegate Task CommandReceivedHandler(string command, string args);
     
@@ -22,6 +24,8 @@ public class WebSocketServer(Plugin plugin, ClientWebSocket socketClient, IPlugi
     private ClientWebSocket _client = socketClient;
     private CancellationTokenSource cts;
     private readonly IFramework _framework = framework;
+    private readonly IDataManager _dataManager = data;
+    private readonly IClientState _clientState = clientState;
 
     private IPluginLog _logger = logger;
 
@@ -138,7 +142,18 @@ public class WebSocketServer(Plugin plugin, ClientWebSocket socketClient, IPlugi
     {
         if (message.Type == XivChatType.TellOutgoing)
         {
-            _framework.Run((() => Chat.Instance.SendMessage($"/tell {message.Sender} {message.Message}")));
+            var WorldList = _dataManager.GetExcelSheet<World>().Select(world => world.Name.ToString())
+                                .Where(name => !string.IsNullOrEmpty(name)).ToHashSet();
+            string sender;
+            if (WorldList.Any(w => message.Sender.Contains(w, StringComparison.OrdinalIgnoreCase)))
+            {
+                sender = message.Sender + "@" + WorldList.FirstOrDefault(world => message.Sender.Contains(world, StringComparison.OrdinalIgnoreCase));
+            }
+            else
+            {
+                sender = _framework.Run(() => message.Sender + "@" + _clientState.LocalPlayer.HomeWorld.Value.Name.ToString()).Result;
+            }
+            _framework.Run((() => Chat.Instance.SendMessage($"/tell {sender} {message.Message}")));
         }
         else
         {
