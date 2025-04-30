@@ -1,89 +1,136 @@
 ﻿using System;
 using System.Linq;
+using AetherLinkServer.Data;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Plugin.Services;
-using AetherLinkServer.Data;
+using ActionState = AetherLinkServer.Data.Enums.ActionState;
 using AetherLinkServer.IPC;
 using AetherLinkServer.Utility;
 using ECommons;
-using ECommons.Automation;
+using ECommons.Automation.NeoTaskManager;
 using ECommons.GameHelpers;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using FFXIVClientStructs.FFXIV.Client.System.Framework;
 using FFXIVClientStructs.FFXIV.Component.GUI;
+using TaskManager = ECommons.Automation.NeoTaskManager.TaskManager;
 using Dalamud.Game.ClientState.Objects;
 using Dalamud.Game.ClientState.Objects.Types;
-using ECommons.Automation.NeoTaskManager;
-using TaskManager = ECommons.Automation.NeoTaskManager.TaskManager;
+using ECommons.Automation;
 
 namespace AetherLinkServer.Handlers;
 
-public sealed class AutoRetainerHandler(Chat chat, ICondition condition, Plugin plugin, ActionScheduler scheduler, IFramework framework, IPluginLog logger, IClientState state, ITargetManager target, IObjectTable objects, TaskManager taskmanager) : IDisposable
+public sealed class AutoRetainerHandler : HandlerBase, IDisposable
 {
-    private readonly IFramework _framework = framework;
-    private readonly IPluginLog _logger = logger;
-    private readonly IClientState _clientState = state;
-    private readonly ITargetManager _targetManager = target;
-    private readonly IObjectTable _objectTable = objects;
-    private readonly ICondition _condition = condition;
-    private readonly Chat _chat = chat;
-    private readonly Plugin _plugin = plugin;
-    private readonly ActionScheduler _actionScheduler = scheduler;
-    
-    
-    private readonly string[] _addonsToClose = ["RetainerList", "SelectYesno", "SelectString", "RetainerTaskAsk"];
-    
-    private readonly TaskManager _taskManager = taskmanager;
+    private readonly Plugin _plugin;
+    private readonly ICondition _condition;
+    private readonly IClientState _clientState;
+    private readonly IObjectTable _objectTable;
+    private readonly ITargetManager _targetManager;
+    private readonly IFramework _framework;
+    private readonly Chat _chat;
+    private readonly ActionScheduler _actionScheduler;
+
     private bool _autoretainerRunning;
 
-    public bool IsEnabled { get; private set; }
+    public override string[] AddonsToClose => new[] { "RetainerList", "SelectYesno", "SelectString", "RetainerTaskAsk" };
+    public override bool CanBeInterrupted => false;
 
-    public long? ClosestRetainerVentureSecondsRemaining =>
-        AutoRetainer_IPCSubscriber.GetClosestRetainerVentureSecondsRemaining(_clientState.LocalContentId);
+    public AutoRetainerHandler(
+        Plugin plugin,
+        Chat chat,
+        ICondition condition,
+        IFramework framework,
+        IPluginLog logger,
+        IClientState state,
+        ITargetManager target,
+        IObjectTable objects,
+        TaskManager taskManager,
+        HandlerManager handlerManager,
+        ActionScheduler actionScheduler
+    ) : base(logger, taskManager, handlerManager)
+    {
+        _plugin = plugin;
+        _chat = chat;
+        _condition = condition;
+        _framework = framework;
+        _clientState = state;
+        _targetManager = target;
+        _objectTable = objects;
+        _actionScheduler = actionScheduler;
+    }
 
     public void Dispose()
     {
         _framework.Update -= OnUpdate;
+        _framework.Update -= HandleRetainerExit;
     }
+
+    public long? ClosestRetainerVentureSecondsRemaining =>
+        AutoRetainer_IPCSubscriber.GetClosestRetainerVentureSecondsRemaining(_clientState.LocalContentId);
 
     public void Invoke()
     {
         if (!AutoRetainer_IPCSubscriber.IsEnabled)
         {
-            _logger.Info("AutoRetainer requires the AutoRetainer plugin. Visit https://puni.sh/plugin/AutoRetainer for more info.");
+            Logger.Info("AutoRetainer requires the AutoRetainer plugin.");
             return;
         }
 
         var secondsRemaining = ClosestRetainerVentureSecondsRemaining;
         if (secondsRemaining is > 0)
         {
-            _logger.Debug($"Scheduling AutoRetainer in {secondsRemaining} seconds...");
-            _actionScheduler.ScheduleAction(nameof(Invoke), Enable, (int)secondsRemaining);
+            Logger.Debug($"Scheduling AutoRetainer in {secondsRemaining} seconds...");
+            _actionScheduler.ScheduleAction(nameof(Enable), ()=>TaskManager.Enqueue(() =>
+            {
+                if (HandlerManager.TryInterruptRunningHandlers())
+                {
+                    Enable();
+                    return true;
+                }
+
+                return false;
+            },nameof(Enable)), (int)secondsRemaining);
         }
         else
         {
-            Enable();
-            _actionScheduler.CancelAction(nameof(Invoke));
+            TaskManager.Enqueue(() =>
+            {
+                if (HandlerManager.TryInterruptRunningHandlers())
+                {
+                    Enable();
+                    return true;
+                }
+
+                return false;
+            },nameof(Enable));
+            _actionScheduler.CancelAction(nameof(Enable));
         }
     }
-
-    public void Enable()
+    
+    protected override void OnEnable()
     {
-        if (!AutoRetainer_IPCSubscriber.IsEnabled || !AutoRetainer_IPCSubscriber.AreAnyRetainersAvailableForCurrentChara())
+        if (!AutoRetainer_IPCSubscriber.AreAnyRetainersAvailableForCurrentChara())
+        {
+            Logger.Debug("No available retainers.");
+            Disable();
             return;
+        }
 
-        if (IsEnabled)
-            return;
-
-        _logger.Debug("AutoRetainer enabled.");
-        IsEnabled = true;
+        Logger.Debug("AutoRetainer enabled.");
         _framework.Update += OnUpdate;
+    }
+
+    protected override void OnDisable()
+    {
+        TaskManager.Abort();
+        _autoretainerRunning = false;
+        _framework.Update -= OnUpdate;
+        _framework.Update += HandleRetainerExit;
     }
 
     private void OnUpdate(IFramework framework)
     {
-        if (!IsEnabled)
-            return;
+        if (!IsEnabled) return;
 
         if (!_autoretainerRunning && !AutoRetainer_IPCSubscriber.IsBusy())
         {
@@ -92,122 +139,93 @@ public sealed class AutoRetainerHandler(Chat chat, ICondition condition, Plugin 
         }
         else if (_autoretainerRunning && !AutoRetainer_IPCSubscriber.IsBusy() && !AutoRetainer_IPCSubscriber.AreAnyRetainersAvailableForCurrentChara())
         {
-            _logger.Info("AutoRetainer finished.");
-            Stop();
+            Logger.Info("AutoRetainer finished.");
+            Disable();
         }
     }
 
     private unsafe void StartTasks()
     {
-        _taskManager.Enqueue(() =>
+        TaskManager.Enqueue(() =>
         {
             if (_clientState.LocalPlayer == null) return false;
 
-            // Teleport to Kugane if not there
-            if (Player.Territory != 628 && _plugin.state != Enums.ActionState.Teleporting)
+            if (Player.Territory != 628 && _plugin.state != ActionState.Teleporting && !Player.IsBusy)
             {
                 if (TeleportHelper.TryFindAetheryteByName("Kugane", out var kugane, out _))
                 {
-                    _logger.Debug("Teleporting to Kugane...");
+                    Logger.Debug("Teleporting to Kugane...");
                     TeleportHelper.Teleport(kugane.AetheryteId, kugane.SubIndex);
-                    _plugin.state = Enums.ActionState.Teleporting;
+                    _plugin.state = ActionState.Teleporting;
                 }
-                return false; // wait for teleport
+                return false;
             }
 
             return true;
-        });
+        }, new TaskManagerConfiguration(timeLimitMS:1000000));
 
-        _taskManager.Enqueue(() =>
+        TaskManager.Enqueue(() =>
         {
-            // After teleport: wait for zone loaded
             if (Player.Territory == 628 && !Player.IsBusy)
             {
-                _logger.Debug("Arrived at Kugane, moving to Summoning Bell...");
+                Logger.Debug("Arrived at Kugane, moving to Summoning Bell...");
                 PlayerMovement.Move(SummoningBell.SummoningBellVector3s(628));
-                _plugin.state = Enums.ActionState.MovingToBell;
+                _plugin.state = ActionState.MovingToBell;
                 return true;
             }
             return false;
         });
 
-        _taskManager.Enqueue(() =>
+        TaskManager.Enqueue(() =>
         {
-            // Walked to bell
             var bellPos = SummoningBell.SummoningBellVector3s(628);
             if (PlayerHelper.GetDistanceToPlayer(bellPos) <= 4 && summoningBell != null)
             {
                 if (!_condition[ConditionFlag.OccupiedSummoningBell])
                 {
-                    _logger.Debug("Interacting with Summoning Bell...");
+                    Logger.Debug("Interacting with Summoning Bell...");
                     _chat.ExecuteCommand("/autoretainer e");
                     _targetManager.Target = summoningBell;
                     TargetSystem.Instance()->OpenObjectInteraction(TargetSystem.Instance()->Target);
-                    _plugin.state = Enums.ActionState.InteractingWithBell;
+                    _plugin.state = ActionState.InteractingWithBell;
                 }
                 return true;
             }
             return false;
         });
 
-        _taskManager.Enqueue(() =>
+        TaskManager.Enqueue(() =>
         {
-            // Wait until AutoRetainer work is done
             if (AutoRetainer_IPCSubscriber.IsBusy())
             {
-                _logger.Debug("AutoRetainer is now working.");
+                Logger.Debug("AutoRetainer is now working.");
                 return false;
             }
             return true;
         });
 
-        _taskManager.Enqueue(() =>
+        TaskManager.Enqueue(() =>
         {
-            // Cleanup
-            _logger.Debug("AutoRetainer finished work, closing addons.");
+            Logger.Debug("AutoRetainer finished work, closing addons.");
             CloseAddons();
-            _plugin.state = Enums.ActionState.InteractingWithBell;
+            _plugin.state = ActionState.None;
             return true;
         });
-    }
-
-    private void Stop()
-    {
-        _logger.Debug("Stopping AutoRetainerHandler...");
-        IsEnabled = false;
-        _autoretainerRunning = false;
-        _framework.Update -= OnUpdate;
-
-        _framework.Update += HandleRetainerExit;
     }
 
     private void HandleRetainerExit(IFramework framework)
     {
         if (!_condition[ConditionFlag.OccupiedSummoningBell])
         {
-            _plugin.state = Enums.ActionState.None;
+            _plugin.state = ActionState.None;
             _framework.Update -= HandleRetainerExit;
-            Invoke(); // Check again if another venture is ready soon
+            Invoke();
         }
         else
         {
-            _logger.Debug("Closing remaining windows...");
+            Logger.Debug("Closing remaining windows...");
             CloseAddons();
         }
-    }
-
-    private unsafe bool CloseAddons()
-    {
-        foreach (var name in _addonsToClose)
-        {
-            if (GenericHelpers.TryGetAddonByName(name, out AtkUnitBase* addon) && addon->IsVisible)
-            {
-                _logger.Debug($"Closing addon: {name}");
-                addon->Close(true);
-                return false;
-            }
-        }
-        return true;
     }
 
     private IGameObject? summoningBell =>

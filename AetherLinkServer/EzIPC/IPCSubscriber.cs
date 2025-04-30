@@ -154,14 +154,14 @@ internal static class VNavmesh_IPCSubscriber
 
 internal static class GatherBuddyReborn_IPCSubscriber
 {
-    public static event Action<bool> OnAutoGatherStatusChanged;
+    public static event Action<bool>? OnAutoGatherStatusChanged;
     private static readonly EzIPCDisposalToken[] _disposalTokens;
     static GatherBuddyReborn_IPCSubscriber()
     {
         _disposalTokens = EzIPC.Init(typeof(GatherBuddyReborn_IPCSubscriber),"GatherBuddyReborn");
     }
 
-
+    internal static bool IsEnabled => IPCSubscriber_Common.IsReady("GatherbuddyReborn");
     [EzIPC]
     internal static readonly Func<bool> IsAutoGatherEnabled;
     [EzIPC]
@@ -172,7 +172,7 @@ internal static class GatherBuddyReborn_IPCSubscriber
     [EzIPCEvent]
     public static void AutoGatherEnabledChanged(bool enabled)
     {
-        OnAutoGatherStatusChanged.Invoke(enabled);
+        OnAutoGatherStatusChanged?.Invoke(enabled);
     }
 }
 

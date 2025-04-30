@@ -5,6 +5,7 @@ using AetherLinkServer.Handlers;
 using AetherLinkServer.Models;
 using AetherLinkServer.Utility;
 using AetherLinkServer.Windows;
+using Dalamud.Game.ClientState.Objects;
 using Dalamud.Plugin;
 using ECommons.Automation;
 using ECommons.Automation.NeoTaskManager;
@@ -12,6 +13,7 @@ using ECommons.DalamudServices;
 using ECommons.SimpleGui;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using Microsoft.Extensions.DependencyInjection;
+using Dalamud.Plugin.Services;
 
 namespace AetherLinkServer.Services;
 
@@ -20,45 +22,69 @@ public static class ServiceWrapper
     public static IServiceProvider ServiceProvider;
     
     public static void Initialize(Plugin plugin, IDalamudPluginInterface pi)
-    {
-        IServiceCollection _serviceCollection = new ServiceCollection();
+{
+        IServiceCollection services = new ServiceCollection();
         Svc.Init(pi);
 
-        _serviceCollection.AddSingleton(Svc.Chat);
-        _serviceCollection.AddSingleton(Svc.Log);
-        _serviceCollection.AddSingleton(Svc.PluginInterface);
-        _serviceCollection.AddSingleton(Svc.Framework);
-        _serviceCollection.AddSingleton(Svc.Condition);
-        _serviceCollection.AddSingleton(Svc.GameGui);
-        _serviceCollection.AddSingleton(Svc.Targets);
-        _serviceCollection.AddSingleton(Svc.ClientState);
-        _serviceCollection.AddSingleton(Svc.Objects);
-        _serviceCollection.AddSingleton(Svc.Data);
         
-        _serviceCollection.AddSingleton(plugin);
-        _serviceCollection.AddSingleton(plugin.Configuration);
-        
-        _serviceCollection.AddSingleton<ClientWebSocket>();
-        _serviceCollection.AddSingleton<TaskManager>();
-        _serviceCollection.AddSingleton<Chat>();
-        
-        _serviceCollection.AddSingleton<CommandHandler>();
-        _serviceCollection.AddSingleton<WebSocketServer>();
-        _serviceCollection.AddSingleton<ChatHandler>();
-        _serviceCollection.AddSingleton<ActionScheduler>();
-        _serviceCollection.AddSingleton<AutoRetainerHandler>();
+        services.AddSingleton(Svc.Chat);
+        services.AddSingleton(Svc.Log);
+        services.AddSingleton(Svc.PluginInterface);
+        services.AddSingleton(Svc.Framework);
+        services.AddSingleton(Svc.Condition);
+        services.AddSingleton(Svc.GameGui);
+        services.AddSingleton(Svc.Targets);
+        services.AddSingleton(Svc.ClientState);
+        services.AddSingleton(Svc.Objects);
+        services.AddSingleton(Svc.Data);
 
-        _serviceCollection.AddSingleton<AutoretainerCommand>();
-        _serviceCollection.AddSingleton<TeleportCommand>();
-        _serviceCollection.AddSingleton<GetCurrentTargetCommand>();
         
-        _serviceCollection.AddSingleton<MainWindow>();
+        services.AddSingleton(plugin);
+        services.AddSingleton(plugin.Configuration);
+
         
-        _serviceCollection.AddSingleton<TaskManager>();
+        services.AddSingleton<ClientWebSocket>();
         
-        ServiceProvider = _serviceCollection.BuildServiceProvider();
+        services.AddTransient<TaskManager>();
         
-    }
+        services.AddSingleton<Chat>();
+        services.AddSingleton<ActionScheduler>();
+        services.AddSingleton<ChatHandler>();
+
+        
+        services.AddSingleton<HandlerManager>();
+
+        
+        services.AddTransient<AutoRetainerHandler>();
+        services.AddTransient<HandlerBase>(dp => dp.GetRequiredService<AutoRetainerHandler>());
+        services.AddTransient<AutogatherHandler>();
+        services.AddTransient<HandlerBase>(dp => dp.GetRequiredService<AutogatherHandler>());
+
+        
+        services.AddSingleton<AutoretainerCommand>();
+        services.AddSingleton<TeleportCommand>();
+        services.AddSingleton<GetCurrentTargetCommand>();
+        services.AddSingleton<AutogatherCommand>();
+
+        
+        services.AddSingleton<MainWindow>();
+
+        
+        services.AddSingleton<WebSocketServer>();
+        services.AddSingleton<CommandHandler>();
+        
+        ServiceProvider = services.BuildServiceProvider();
+
+    
+        var handlerManager = ServiceProvider.GetRequiredService<HandlerManager>();
+
+        foreach (var handler in ServiceProvider
+                     .GetServices<HandlerBase>())
+        {
+            handlerManager.Register(handler);
+        }
+}
+
 
     public static T Get<T>() where T : notnull => ServiceProvider.GetRequiredService<T>();
     public static object Get(Type type) => ServiceProvider.GetRequiredService(type);

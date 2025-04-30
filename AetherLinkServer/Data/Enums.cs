@@ -17,6 +17,8 @@ public static class Enums
         Teleporting,
         MovingToBell,
         InteractingWithBell,
+        Gathering,
+        MovingToGather
     }
 
     [Flags]

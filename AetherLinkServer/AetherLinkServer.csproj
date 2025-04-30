@@ -14,5 +14,8 @@
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.4" />
         <PackageReference Include="Open.Nat" Version="2.1.0" />
     </ItemGroup>
+    <ItemGroup>
+      <Folder Include="Interfaces\" />
+    </ItemGroup>
 
 </Project>
